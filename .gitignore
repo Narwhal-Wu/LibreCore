@@ -1,0 +1,95 @@
+# ================= Vivado / FPGA Project Ignore =================
+# 目的: 只保留可复现工程所需的源文件、约束、脚本、IP 定义，而忽略所有可重新生成的输出/缓存/临时文件。
+# 同事 clone 后应能直接用 Vivado 打开 .xpr 或运行脚本再生构建产物。
+
+# ---- 顶层工程自动/缓存目录 ----
+# Vivado 运行生成的大量临时/结果目录
+*.runs/
+*.cache/
+*.hw/
+*.ip_user_files/
+*.sim/
+*.webtalk/
+*.Xil/
+*.ltx
+
+# 某些版本可能使用的隐藏/临时目录
+*.jou
+*.log
+*.str
+*.tmp/
+*.backup/
+*.cache/
+
+# ---- 生成的比特流 / 可编程文件 ----
+# 若需要共享最终 bit/elf，可在发布时手动添加 Release 目录再跟踪
+*.bit
+*.bin
+*.mcs
+*.prm
+*.ltx
+*.elf
+*.mem
+*.hex
+
+# ---- 报告 / 导出 / 生成文件 ----
+*.html
+*.xml
+*.rpt
+*.csv
+*.sdf
+*.jou
+*.log
+*.pb
+*.dcp
+*.edif
+*.edf
+*.srp
+
+# ---- 仿真生成文件 (通用) ----
+*.wdb
+*.vcd
+*.saif
+*.fsdb
+*.ucdb
+
+# ---- IP 及 Block Design 中间产物 ----
+# 保留 .xci / .tcl (IP 定义)；忽略生成的实现缓存
+*.xcix
+*.sdk/
+*.hwh
+
+# ---- 备份 / 杂项 ----
+*~
+*.backup
+*.orig
+.DS_Store
+Thumbs.db
+
+# ---- 压缩包 / 临时打包 ----
+*.zip
+*.tar
+*.tar.gz
+*.rar
+
+# ---- 工具脚本缓存 ----
+*.pyc
+__pycache__/
+
+# 如果你确实需要提交某个被忽略的文件，可使用：
+#   git add -f path/to/file.bit
+# 或在仓库建立 release/ 目录存放最终编程文件并取消对该目录的忽略。
+
+# ---- 可选：放行常见源文件 / 约束文件 (白名单提示) ----
+# 以下类型默认是需要提交的 (不要在此 ignore)：
+#   *.xpr (工程文件)
+#   *.xci (IP 配置)
+#   *.bd  (Block Design，可考虑用 tcl 导出)
+#   *.tcl (脚本/重建工程脚本)
+#   *.v *.sv *.vh (RTL 源码)
+#   *.xdc (约束)
+#   *.ipdef
+#   *.coe (初始化文件)
+#   *.qip (若跨平台)
+
+# 结束
