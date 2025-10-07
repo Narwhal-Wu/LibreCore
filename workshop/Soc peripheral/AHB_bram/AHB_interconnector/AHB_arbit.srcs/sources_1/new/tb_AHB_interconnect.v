@@ -35,6 +35,7 @@ module tb_AHB_interconnect ();
     wire [3:0] bram_wea;
     wire [DATA_WIDTH-1:0] bram_dina;
     wire irom_ena;
+    wire bram_ena;
 
     AHB_interconnect connector (
         .HCLK(HCLK),
