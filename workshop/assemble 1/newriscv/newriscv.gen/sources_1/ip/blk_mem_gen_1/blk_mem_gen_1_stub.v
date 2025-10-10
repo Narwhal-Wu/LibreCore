@@ -2,7 +2,7 @@
 // Copyright 2022-2023 Advanced Micro Devices, Inc. All Rights Reserved.
 // --------------------------------------------------------------------------------
 // Tool Version: Vivado v.2023.2 (win64) Build 4029153 Fri Oct 13 20:14:34 MDT 2023
-// Date        : Tue Oct  7 16:06:47 2025
+// Date        : Fri Oct 10 20:06:03 2025
 // Host        : LAPTOP-FB6BI1PT running 64-bit major release  (build 9200)
 // Command     : write_verilog -force -mode synth_stub {d:/inbed/LibreCore/workshop/assemble
 //               1/newriscv/newriscv.gen/sources_1/ip/blk_mem_gen_1/blk_mem_gen_1_stub.v}
