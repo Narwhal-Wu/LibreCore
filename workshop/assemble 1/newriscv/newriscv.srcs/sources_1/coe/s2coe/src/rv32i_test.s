@@ -8,10 +8,8 @@
 
 _start:
     # Initialize test counter in x31 (t6) - will count passed tests
-    li x31, 0
-    
-    # Initialize base addresses for memory operations
-    li x30, 0x1000      # Base address for memory tests (t5)
+    li x31, 0          # x31为测试计数器，也是数码管唯一显示寄存器
+    li x30, 0x1000     # 内存基址（仅用于内存测试，不参与结果输出）
 
     #=================================================================
     # TEST 1-3: LUI and AUIPC instructions
@@ -20,7 +18,8 @@ test_lui:
     lui x5, 0x12345     # x5 = 0x12345000
     lui x6, 0x12345     # x6 = 0x12345000
     beq x5, x6, pass_1
-    j fail_halt
+    li x31, 0xffff1     # LUI测试失败，x31=0xffff1，数码管显示
+    j done
 pass_1:
     addi x31, x31, 1    # Test 1 passed
 
@@ -30,7 +29,8 @@ test_auipc:
     sub x9, x8, x7      # x9 should be close to 0x1000
     li x10, 0x0FF0
     blt x10, x9, pass_2 # Check if difference is reasonable
-    j fail_halt
+    li x31, 0xffff2     # AUIPC测试失败，x31=0xffff2
+    j done
 pass_2:
     addi x31, x31, 1    # Test 2 passed
     addi x31, x31, 1    # Test 3 passed (AUIPC with offset)
@@ -43,7 +43,8 @@ test_addi:
     addi x12, x11, 50   # x12 = 150
     li x13, 150
     beq x12, x13, pass_4
-    j fail_halt
+    li x31, 0xffff3     # ADDI测试失败，x31=0xffff3
+    j done
 pass_4:
     addi x31, x31, 1    # Test 4 passed
 
@@ -53,7 +54,8 @@ test_add:
     add x16, x14, x15   # x16 = 500
     li x17, 500
     beq x16, x17, pass_5
-    j fail_halt
+    li x31, 0xffff4     # ADD测试失败，x31=0xffff4
+    j done
 pass_5:
     addi x31, x31, 1    # Test 5 passed
 
@@ -63,7 +65,8 @@ test_sub:
     sub x20, x18, x19   # x20 = 600
     li x21, 600
     beq x20, x21, pass_6
-    j fail_halt
+    li x31, 0xffff5     # SUB测试失败，x31=0xffff5
+    j done
 pass_6:
     addi x31, x31, 1    # Test 6 passed
 
@@ -72,7 +75,8 @@ test_slti:
     slti x23, x22, 100  # x23 = 1 (50 < 100)
     li x24, 1
     beq x23, x24, pass_7
-    j fail_halt
+    li x31, 0xffff6     # SLTI测试失败，x31=0xffff6
+    j done
 pass_7:
     addi x31, x31, 1    # Test 7 passed
 
@@ -84,7 +88,8 @@ test_andi:
     andi x26, x25, 0x0FF # x26 = 0x0F0
     li x27, 0x0F0
     beq x26, x27, pass_8
-    j fail_halt
+    li x31, 0xffff7     # ANDI测试失败，x31=0xffff7
+    j done
 pass_8:
     addi x31, x31, 1    # Test 8 passed
 
@@ -93,16 +98,18 @@ test_ori:
     ori x6, x5, 0x0FF   # x6 = 0xFFF
     li x7, 0xFFF
     beq x6, x7, pass_9
-    j fail_halt
+    li x31, 0xffff8     # ORI测试失败，x31=0xffff8
+    j done
 pass_9:
     addi x31, x31, 1    # Test 9 passed
 
 test_xori:
     li x8, 0xAAA
     xori x9, x8, 0x7FF  # x9 = x8 ^ 0x7FF (using 12-bit immediate)
-    li x10, 0x255       # Expected result 0xAAA ^ 0x7FF = 0x255
+    li x10, 0xD55       # Expected result 0xAAA ^ 0x7FF = 0xD55
     beq x9, x10, pass_10
-    j fail_halt
+    li x31, 0xffff9     # XORI测试失败，x31=0xffff9
+    j done
 pass_10:
     addi x31, x31, 1    # Test 10 passed
 
@@ -115,7 +122,8 @@ test_and:
     and x13, x11, x12   # x13 = 0xF00
     li x14, 0xF00
     beq x13, x14, pass_11
-    j fail_halt
+    li x31, 0xffffa     # AND测试失败，x31=0xffffa
+    j done
 pass_11:
     addi x31, x31, 1    # Test 11 passed
 
@@ -125,7 +133,8 @@ test_or:
     or x17, x15, x16    # x17 = 0xFFF
     li x18, 0xFFF
     beq x17, x18, pass_12
-    j fail_halt
+    li x31, 0xffffb     # OR测试失败，x31=0xffffb
+    j done
 pass_12:
     addi x31, x31, 1    # Test 12 passed
 
@@ -135,7 +144,8 @@ test_xor:
     xor x21, x19, x20   # x21 = 0x555
     li x22, 0x555
     beq x21, x22, pass_13
-    j fail_halt
+    li x31, 0xffffc     # XOR测试失败，x31=0xffffc
+    j done
 pass_13:
     addi x31, x31, 1    # Test 13 passed
 
@@ -147,7 +157,8 @@ test_slli:
     slli x24, x23, 8    # x24 = 0x100
     li x25, 0x100
     beq x24, x25, pass_14
-    j fail_halt
+    li x31, 0xffffd     # SLLI测试失败，x31=0xffffd
+    j done
 pass_14:
     addi x31, x31, 1    # Test 14 passed
 
@@ -156,7 +167,8 @@ test_srli:
     srli x27, x26, 4    # x27 = 0x080
     li x28, 0x080
     beq x27, x28, pass_15
-    j fail_halt
+    li x31, 0xffffe     # SRLI测试失败，x31=0xffffe
+    j done
 pass_15:
     addi x31, x31, 1    # Test 15 passed
 
@@ -165,7 +177,8 @@ test_srai:
     srai x6, x5, 4      # x6 = 0xFFFFFFF0 (arithmetic right shift)
     li x7, -16          # 0xFFFFFFF0
     beq x6, x7, pass_16
-    j fail_halt
+    li x31, 0xfffff     # SRAI测试失败，x31=0xfffff
+    j done
 pass_16:
     addi x31, x31, 1    # Test 16 passed
 
@@ -178,7 +191,8 @@ test_sll:
     sll x10, x8, x9     # x10 = 0x030
     li x11, 0x030
     beq x10, x11, pass_17
-    j fail_halt
+    li x31, 0x10001     # SLL测试失败，x31=0x10001
+    j done
 pass_17:
     addi x31, x31, 1    # Test 17 passed
 
@@ -188,7 +202,8 @@ test_srl:
     srl x14, x12, x13   # x14 = 0x0F0
     li x15, 0x0F0
     beq x14, x15, pass_18
-    j fail_halt
+    li x31, 0x10002     # SRL测试失败，x31=0x10002
+    j done
 pass_18:
     addi x31, x31, 1    # Test 18 passed
 
@@ -198,7 +213,8 @@ test_sra:
     sra x18, x16, x17   # x18 = 0xFFFFFFF0
     li x19, -16
     beq x18, x19, pass_19
-    j fail_halt
+    li x31, 0x10003     # SRA测试失败，x31=0x10003
+    j done
 pass_19:
     addi x31, x31, 1    # Test 19 passed
 
@@ -211,7 +227,8 @@ test_slt:
     slt x22, x20, x21   # x22 = 1 (-10 < 10)
     li x23, 1
     beq x22, x23, pass_20
-    j fail_halt
+    li x31, 0x10004     # SLT测试失败，x31=0x10004
+    j done
 pass_20:
     addi x31, x31, 1    # Test 20 passed
 
@@ -221,7 +238,8 @@ test_sltu:
     sltu x26, x25, x24  # x26 = 1 (1 < 0xFFFFFFFF unsigned)
     li x27, 1
     beq x26, x27, pass_21
-    j fail_halt
+    li x31, 0x10005     # SLTU测试失败，x31=0x10005
+    j done
 pass_21:
     addi x31, x31, 1    # Test 21 passed
 
@@ -230,7 +248,8 @@ test_sltiu:
     sltiu x5, x28, 100  # x5 = 1 (50 < 100)
     li x6, 1
     beq x5, x6, pass_22
-    j fail_halt
+    li x31, 0x10006     # SLTIU测试失败，x31=0x10006
+    j done
 pass_22:
     addi x31, x31, 1    # Test 22 passed
 
@@ -242,7 +261,8 @@ test_sw_lw:
     sw x7, 0(x30)       # Store word at 0x1000
     lw x8, 0(x30)       # Load word from 0x1000
     beq x7, x8, pass_23
-    j fail_halt
+    li x31, 0x10007     # SW/LW测试失败，x31=0x10007
+    j done
 pass_23:
     addi x31, x31, 1    # Test 23 passed
 
@@ -252,7 +272,8 @@ test_sh_lh:
     lh x10, 4(x30)      # Load halfword (sign-extended)
     li x11, 0x5678
     beq x10, x11, pass_24
-    j fail_halt
+    li x31, 0x10008     # SH/LH测试失败，x31=0x10008
+    j done
 pass_24:
     addi x31, x31, 1    # Test 24 passed
 
@@ -262,7 +283,8 @@ test_sb_lb:
     lb x13, 8(x30)      # Load byte (sign-extended)
     li x14, 0xFFFFFF9A  # Sign-extended 0x9A
     beq x13, x14, pass_25
-    j fail_halt
+    li x31, 0x10009     # SB/LB测试失败，x31=0x10009
+    j done
 pass_25:
     addi x31, x31, 1    # Test 25 passed
 
@@ -272,7 +294,8 @@ test_lbu_lhu:
     lbu x16, 12(x30)    # Load byte unsigned
     li x17, 0xFF        # Not sign-extended
     beq x16, x17, pass_26
-    j fail_halt
+    li x31, 0x1000a     # LBU/LHU测试失败，x31=0x1000a
+    j done
 pass_26:
     addi x31, x31, 1    # Test 26 passed
 
@@ -283,7 +306,8 @@ test_beq:
     li x18, 42
     li x19, 42
     beq x18, x19, pass_27
-    j fail_halt
+    li x31, 0x1000b     # BEQ测试失败，x31=0x1000b
+    j done
 pass_27:
     addi x31, x31, 1    # Test 27 passed
 
@@ -291,7 +315,8 @@ test_bne:
     li x20, 10
     li x21, 20
     bne x20, x21, pass_28
-    j fail_halt
+    li x31, 0x1000c     # BNE测试失败，x31=0x1000c
+    j done
 pass_28:
     addi x31, x31, 1    # Test 28 passed
 
@@ -299,7 +324,8 @@ test_blt:
     li x22, -5
     li x23, 10
     blt x22, x23, pass_29
-    j fail_halt
+    li x31, 0x1000d     # BLT测试失败，x31=0x1000d
+    j done
 pass_29:
     addi x31, x31, 1    # Test 29 passed
 
@@ -307,7 +333,8 @@ test_bge:
     li x24, 100
     li x25, 50
     bge x24, x25, pass_30
-    j fail_halt
+    li x31, 0x1000e     # BGE测试失败，x31=0x1000e
+    j done
 pass_30:
     addi x31, x31, 1    # Test 30 passed
 
@@ -318,7 +345,8 @@ test_bltu:
     li x26, 10
     li x27, 0xFFFFFFFF  # Large unsigned number
     bltu x26, x27, pass_31
-    j fail_halt
+    li x31, 0x1000f     # BLTU测试失败，x31=0x1000f
+    j done
 pass_31:
     addi x31, x31, 1    # Test 31 passed
 
@@ -326,7 +354,8 @@ test_bgeu:
     li x28, 0xFFFFFFFF
     li x5, 100
     bgeu x28, x5, pass_32
-    j fail_halt
+    li x31, 0x10010     # BGEU测试失败，x31=0x10010
+    j done
 pass_32:
     addi x31, x31, 1    # Test 32 passed
 
@@ -335,14 +364,16 @@ pass_32:
     #=================================================================
 test_jal:
     jal x6, jal_target
-    j fail_halt
+    li x31, 0x10011     # JAL测试失败，x31=0x10011
+    j done
 jal_target:
     addi x31, x31, 1    # Test 33 passed
 
 test_jalr:
     la x7, jalr_target  # Load address of jalr_target
     jalr x8, x7, 0      # Jump to jalr_target
-    j fail_halt
+    li x31, 0x10012     # JALR测试失败，x31=0x10012
+    j done
 jalr_target:
     addi x31, x31, 1    # Test 34 passed
 
@@ -350,31 +381,14 @@ jalr_target:
     # All tests passed! Output result to LED address
     #=================================================================
 test_complete:
-    # Store pass count (x31) to special LED output address
-    # Using 0xFFFFFFFC as the LED output register address
-    lui x9, 0xFFFFF     # Load upper immediate 0xFFFFF000
-    addi x9, x9, -4     # x9 = 0xFFFFFFFC
-    sw x31, 0(x9)       # Store test pass count to LED address
-    
-    # Also store to a regular memory location for debugging
-    li x10, 0x2000      # Alternative output address
-    sw x31, 0(x10)      # Store pass count at 0x2000
-    
-    # Store success marker (0xDEADBEEF) to indicate completion
-    lui x11, 0xDEADB
-    addi x11, x11, 0x7EF
-    addi x11, x11, 0x400  # x11 = 0xDEADBEEF
-    sw x11, 4(x10)      # Store at 0x2004
-
-    j done              # Jump to infinite loop
+    # 所有测试通过，x31为通过测试数（34），数码管显示x31
+    j done              # 跳转到结束，数码管读取x31
 
     #=================================================================
     # Failure handler - stores 0xFFFFFFFF to indicate failure
     #=================================================================
 fail_halt:
-    li x9, 0xFFFFFFFC   # LED output address
-    li x12, 0xFFFFFFFF  # Failure marker
-    sw x12, 0(x9)       # Output failure
+    # 不再写内存，所有失败处理已在各测试中完成，fail_halt不再使用
     j done
 
     #=================================================================

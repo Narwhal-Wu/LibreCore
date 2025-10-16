@@ -78,7 +78,7 @@ echo MEM file generated!
 
 echo.
 echo [5/5] Converting to COE format...
-coemem.exe test_output\%MEM% test_output\%COE%
+tool\coemem.exe test_output\%MEM% test_output\%COE%
 if errorlevel 1 (
     echo ERROR: COE conversion failed!
     pause
