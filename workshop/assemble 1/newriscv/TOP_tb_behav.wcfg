@@ -11,13 +11,13 @@
       </db_ref>
    </db_ref_list>
    <zoom_setting>
-      <ZoomStartTime time="595.150 ns"></ZoomStartTime>
-      <ZoomEndTime time="690.551 ns"></ZoomEndTime>
-      <Cursor1Time time="654.150 ns"></Cursor1Time>
+      <ZoomStartTime time="621.343 ns"></ZoomStartTime>
+      <ZoomEndTime time="689.144 ns"></ZoomEndTime>
+      <Cursor1Time time="660.943 ns"></Cursor1Time>
    </zoom_setting>
    <column_width_setting>
       <NameColumnWidth column_width="435"></NameColumnWidth>
-      <ValueColumnWidth column_width="147"></ValueColumnWidth>
+      <ValueColumnWidth column_width="135"></ValueColumnWidth>
    </column_width_setting>
    <WVObjectSize size="5" />
    <wvobject fp_name="/TOP_tb/CLK100MHZ" type="logic">
@@ -44,10 +44,67 @@
          <obj_property name="CustomSignalColor">#FFFF00</obj_property>
          <obj_property name="UseCustomSignalColor">true</obj_property>
       </wvobject>
+      <wvobject fp_name="/TOP_tb/dut/cpu_inst/rs2" type="array">
+         <obj_property name="ElementShortName">rs2[31:0]</obj_property>
+         <obj_property name="ObjectShortName">rs2[31:0]</obj_property>
+      </wvobject>
+      <wvobject fp_name="/TOP_tb/dut/cpu_inst/REGS" type="array">
+         <obj_property name="ElementShortName">REGS[31:0][31:0]</obj_property>
+         <obj_property name="ObjectShortName">REGS[31:0][31:0]</obj_property>
+         <obj_property name="isExpanded"></obj_property>
+      </wvobject>
+      <wvobject fp_name="group34" type="group">
+         <obj_property name="label">fetch</obj_property>
+         <obj_property name="DisplayName">label</obj_property>
+         <obj_property name="isExpanded"></obj_property>
+         <wvobject fp_name="/TOP_tb/dut/cpu_inst/myfetch/valid_trans" type="logic">
+            <obj_property name="ElementShortName">valid_trans</obj_property>
+            <obj_property name="ObjectShortName">valid_trans</obj_property>
+         </wvobject>
+         <wvobject fp_name="/TOP_tb/dut/cpu_inst/myfetch/last_bubble" type="logic">
+            <obj_property name="ElementShortName">last_bubble</obj_property>
+            <obj_property name="ObjectShortName">last_bubble</obj_property>
+         </wvobject>
+         <wvobject fp_name="/TOP_tb/dut/cpu_inst/myfetch/HWDATA_I_reg" type="array">
+            <obj_property name="ElementShortName">HWDATA_I_reg[31:0]</obj_property>
+            <obj_property name="ObjectShortName">HWDATA_I_reg[31:0]</obj_property>
+         </wvobject>
+         <wvobject fp_name="/TOP_tb/dut/cpu_inst/myfetch/if_id_pc" type="array">
+            <obj_property name="ElementShortName">if_id_pc[31:0]</obj_property>
+            <obj_property name="ObjectShortName">if_id_pc[31:0]</obj_property>
+         </wvobject>
+         <wvobject fp_name="/TOP_tb/dut/cpu_inst/myfetch/if_id_inst" type="array">
+            <obj_property name="ElementShortName">if_id_inst[31:0]</obj_property>
+            <obj_property name="ObjectShortName">if_id_inst[31:0]</obj_property>
+         </wvobject>
+         <wvobject fp_name="/TOP_tb/dut/cpu_inst/mydecode/id_ex_rs2" type="array">
+            <obj_property name="ElementShortName">id_ex_rs2[31:0]</obj_property>
+            <obj_property name="ObjectShortName">id_ex_rs2[31:0]</obj_property>
+         </wvobject>
+      </wvobject>
+      <wvobject fp_name="group145" type="group">
+         <obj_property name="label">exe</obj_property>
+         <obj_property name="DisplayName">label</obj_property>
+         <obj_property name="isExpanded"></obj_property>
+         <wvobject fp_name="/TOP_tb/dut/cpu_inst/myexecute/ID_EX_inst" type="array">
+            <obj_property name="ElementShortName">ID_EX_inst[31:0]</obj_property>
+            <obj_property name="ObjectShortName">ID_EX_inst[31:0]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/TOP_tb/dut/cpu_inst/myexecute/ID_EX_inst" type="array">
+            <obj_property name="ElementShortName">ID_EX_inst[31:0]</obj_property>
+            <obj_property name="ObjectShortName">ID_EX_inst[31:0]</obj_property>
+            <obj_property name="Radix">BINARYRADIX</obj_property>
+         </wvobject>
+      </wvobject>
       <wvobject fp_name="group148" type="group">
          <obj_property name="label">mem</obj_property>
          <obj_property name="DisplayName">label</obj_property>
          <obj_property name="isExpanded"></obj_property>
+         <wvobject fp_name="/TOP_tb/dut/cpu_inst/mymemory/EX_MEM_inst" type="array">
+            <obj_property name="ElementShortName">EX_MEM_inst[31:0]</obj_property>
+            <obj_property name="ObjectShortName">EX_MEM_inst[31:0]</obj_property>
+         </wvobject>
          <wvobject fp_name="/TOP_tb/dut/cpu_inst/mymemory/EX_MEM_rs2_reg" type="array">
             <obj_property name="ElementShortName">EX_MEM_rs2_reg[31:0]</obj_property>
             <obj_property name="ObjectShortName">EX_MEM_rs2_reg[31:0]</obj_property>
@@ -67,21 +124,6 @@
          <wvobject fp_name="/TOP_tb/dut/cpu_inst/mymemory/EX_MEM_is_load" type="logic">
             <obj_property name="ElementShortName">EX_MEM_is_load</obj_property>
             <obj_property name="ObjectShortName">EX_MEM_is_load</obj_property>
-         </wvobject>
-      </wvobject>
-      <wvobject fp_name="group145" type="group">
-         <obj_property name="label">exe</obj_property>
-         <obj_property name="DisplayName">label</obj_property>
-         <obj_property name="isExpanded"></obj_property>
-         <wvobject fp_name="/TOP_tb/dut/cpu_inst/myexecute/ID_EX_inst" type="array">
-            <obj_property name="ElementShortName">ID_EX_inst[31:0]</obj_property>
-            <obj_property name="ObjectShortName">ID_EX_inst[31:0]</obj_property>
-            <obj_property name="Radix">HEXRADIX</obj_property>
-         </wvobject>
-         <wvobject fp_name="/TOP_tb/dut/cpu_inst/myexecute/ID_EX_inst" type="array">
-            <obj_property name="ElementShortName">ID_EX_inst[31:0]</obj_property>
-            <obj_property name="ObjectShortName">ID_EX_inst[31:0]</obj_property>
-            <obj_property name="Radix">BINARYRADIX</obj_property>
          </wvobject>
       </wvobject>
       <wvobject fp_name="group94" type="group">
@@ -181,31 +223,6 @@
             <obj_property name="ObjectShortName">HMASTLOCK_I</obj_property>
          </wvobject>
       </wvobject>
-      <wvobject fp_name="group34" type="group">
-         <obj_property name="label">fetch</obj_property>
-         <obj_property name="DisplayName">label</obj_property>
-         <obj_property name="isExpanded"></obj_property>
-         <wvobject fp_name="/TOP_tb/dut/cpu_inst/myfetch/valid_trans" type="logic">
-            <obj_property name="ElementShortName">valid_trans</obj_property>
-            <obj_property name="ObjectShortName">valid_trans</obj_property>
-         </wvobject>
-         <wvobject fp_name="/TOP_tb/dut/cpu_inst/myfetch/last_bubble" type="logic">
-            <obj_property name="ElementShortName">last_bubble</obj_property>
-            <obj_property name="ObjectShortName">last_bubble</obj_property>
-         </wvobject>
-         <wvobject fp_name="/TOP_tb/dut/cpu_inst/myfetch/HWDATA_I_reg" type="array">
-            <obj_property name="ElementShortName">HWDATA_I_reg[31:0]</obj_property>
-            <obj_property name="ObjectShortName">HWDATA_I_reg[31:0]</obj_property>
-         </wvobject>
-         <wvobject fp_name="/TOP_tb/dut/cpu_inst/myfetch/if_id_pc" type="array">
-            <obj_property name="ElementShortName">if_id_pc[31:0]</obj_property>
-            <obj_property name="ObjectShortName">if_id_pc[31:0]</obj_property>
-         </wvobject>
-         <wvobject fp_name="/TOP_tb/dut/cpu_inst/myfetch/if_id_inst" type="array">
-            <obj_property name="ElementShortName">if_id_inst[31:0]</obj_property>
-            <obj_property name="ObjectShortName">if_id_inst[31:0]</obj_property>
-         </wvobject>
-      </wvobject>
    </wvobject>
    <wvobject fp_name="group74" type="group">
       <obj_property name="label">AHB_irom_controller</obj_property>
@@ -299,7 +316,6 @@
    <wvobject fp_name="group118" type="group">
       <obj_property name="label">AHB_dram_controller</obj_property>
       <obj_property name="DisplayName">label</obj_property>
-      <obj_property name="isExpanded"></obj_property>
       <wvobject fp_name="/TOP_tb/dut/bramc/HCLK" type="logic">
          <obj_property name="ElementShortName">HCLK</obj_property>
          <obj_property name="ObjectShortName">HCLK</obj_property>

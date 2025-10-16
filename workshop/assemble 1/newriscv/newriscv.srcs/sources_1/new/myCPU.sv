@@ -255,7 +255,7 @@ writeback mywriteback (
 
 //根据指令写回file register
 always @(*) begin
-  if (!HRESETn && MEM_WB_rd != 0) begin
+  if (HRESETn && MEM_WB_rd != 0) begin
     case (MEM_WB_inst[6:0])
       `LUI:   REGS[MEM_WB_rd] = REGS_MEM_WB_rd;
       `AUIPC: REGS[MEM_WB_rd] = REGS_MEM_WB_rd;

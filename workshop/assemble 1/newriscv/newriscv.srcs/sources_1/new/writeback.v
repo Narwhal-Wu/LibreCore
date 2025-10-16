@@ -30,7 +30,7 @@ reg [31:0] regs_mem_wb_rd;
 assign REGS_MEM_WB_rd = regs_mem_wb_rd;
 
 always @(*) begin
-    if (!RES) begin
+    if (RES) begin
         case (MEM_WB_inst[6:0])
             `LUI:     regs_mem_wb_rd = MEM_WB_alu;
             `AUIPC:   regs_mem_wb_rd = MEM_WB_alu;
