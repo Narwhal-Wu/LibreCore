@@ -21,9 +21,43 @@ def compile_asm_to_bin(asm_file, output_dir):
     bin_file = output_dir / f"{base_name}.bin"
     hex_file = output_dir / f"{base_name}.hex"
     
+    # Try to find RISC-V GCC with different prefixes
+    gcc_prefixes = [
+        "riscv32-unknown-elf-gcc",
+        "riscv-none-embed-gcc",
+        "riscv64-unknown-elf-gcc"
+    ]
+    
+    gcc_cmd = None
+    for prefix in gcc_prefixes:
+        try:
+            result = subprocess.run([prefix, "--version"], 
+                                  capture_output=True, 
+                                  timeout=2)
+            if result.returncode == 0:
+                gcc_cmd = prefix
+                print(f"Found RISC-V toolchain: {prefix}")
+                break
+        except (FileNotFoundError, subprocess.TimeoutExpired):
+            continue
+    
+    if not gcc_cmd:
+        print("Error: RISC-V GCC not found!")
+        print("Tried: " + ", ".join(gcc_prefixes))
+        print("\nPlease install RISC-V toolchain or add it to PATH:")
+        print("  Windows: Add toolchain bin directory to system PATH")
+        print("  Ubuntu: sudo apt-get install gcc-riscv64-unknown-elf")
+        print("  Or download from: https://github.com/riscv-collab/riscv-gnu-toolchain")
+        return None
+    
+    # Determine other tool names based on gcc prefix
+    tool_prefix = gcc_cmd.replace("-gcc", "")
+    objcopy_cmd = f"{tool_prefix}-objcopy"
+    objdump_cmd = f"{tool_prefix}-objdump"
+    
     # Compile assembly to ELF
     compile_cmd = [
-        "riscv32-unknown-elf-gcc",
+        gcc_cmd,
         "-march=rv32i",
         "-mabi=ilp32",
         "-nostdlib",
@@ -32,42 +66,35 @@ def compile_asm_to_bin(asm_file, output_dir):
         str(asm_file)
     ]
     
-    try:
-        print(f"Compiling {asm_file}...")
-        result = subprocess.run(compile_cmd, capture_output=True, text=True)
-        if result.returncode != 0:
-            print(f"Compilation error: {result.stderr}")
-            return None
-        print(f"  Created {elf_file}")
-    except FileNotFoundError:
-        print("Error: riscv32-unknown-elf-gcc not found!")
-        print("Please install RISC-V toolchain:")
-        print("  Ubuntu: sudo apt-get install gcc-riscv64-unknown-elf")
-        print("  Or download from: https://github.com/riscv-collab/riscv-gnu-toolchain")
+    print(f"Compiling {asm_file}...")
+    result = subprocess.run(compile_cmd, capture_output=True, text=True)
+    if result.returncode != 0:
+        print(f"Compilation error: {result.stderr}")
         return None
+    print(f"  Created {elf_file}")
     
     # Convert ELF to binary
-    objcopy_cmd = [
-        "riscv32-unknown-elf-objcopy",
+    objcopy_cmd_list = [
+        objcopy_cmd,
         "-O", "binary",
         str(elf_file),
         str(bin_file)
     ]
     
-    result = subprocess.run(objcopy_cmd, capture_output=True, text=True)
+    result = subprocess.run(objcopy_cmd_list, capture_output=True, text=True)
     if result.returncode != 0:
         print(f"Objcopy error: {result.stderr}")
         return None
     print(f"  Created {bin_file}")
     
     # Convert binary to hex
-    objdump_cmd = [
-        "riscv32-unknown-elf-objdump",
+    objdump_cmd_list = [
+        objdump_cmd,
         "-D",
         str(elf_file)
     ]
     
-    result = subprocess.run(objdump_cmd, capture_output=True, text=True)
+    result = subprocess.run(objdump_cmd_list, capture_output=True, text=True)
     if result.returncode == 0:
         with open(hex_file, 'w') as f:
             f.write(result.stdout)
