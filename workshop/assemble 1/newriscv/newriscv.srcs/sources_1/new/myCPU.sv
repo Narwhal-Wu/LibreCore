@@ -94,6 +94,7 @@ wire        ID_EX_is_jal;   //存入ID-EX流水线的JAL标志
 wire        ID_EX_is_sys;   //存入ID-EX流水线的SYS标志
 wire        ID_EX_is_branch;//存入ID-EX流水线的跳转标志
 wire [31:0] load_data;
+wire        rs2_Flag;
 
 reg  [31:0] REGS [31:0];    //cpu内部的file register
 integer i;
@@ -130,7 +131,8 @@ decode mydecode (
   .ID_EX_is_jal   (ID_EX_is_jal),
   .ID_EX_is_sys   (ID_EX_is_sys),
   .ID_EX_is_branch(ID_EX_is_branch),
-  .Load_bubble    (Load_bubble)
+  .Load_bubble    (Load_bubble),
+  .rs2_Flag       (rs2_Flag)
 );
 
 //====================================================================================
@@ -170,6 +172,8 @@ execute myexecute (
   .HRDATA_D              (HRDATA_D),
   .MEM_WB_inst           (MEM_WB_inst),
   .Load_bubble           (Load_bubble),
+  .load_data             (load_data),
+  .rs2_Flag              (rs2_Flag),
 
   .ID_EX_alu             (ID_EX_alu),
   .EX_MEM_pc             (EX_MEM_pc),

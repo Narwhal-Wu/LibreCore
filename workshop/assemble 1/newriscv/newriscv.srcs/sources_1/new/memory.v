@@ -88,17 +88,27 @@ assign HPROT_D       = `HPROT_DATA;        // 数据访问，特权模式
 // temporary fix for HWDATA_D
 reg [31:0] EX_MEM_rs2_reg;
 
-always @(posedge CLK ) begin
+always @(posedge CLK) begin
     EX_MEM_rs2_reg <= EX_MEM_rs2;
 end
-// temporary fix for HWDATA_D
+
+// temporary fix for EX_MEM_is_load_buffer
+reg EX_MEM_is_load_buffer;
+
+always @(posedge CLK) begin
+    EX_MEM_is_load_buffer <= EX_MEM_is_load;
+end
 
 // 传输大小计算
 wire [2:0] data_size = (EX_MEM_is_load || EX_MEM_is_store) ? 
-                     ((EX_MEM_inst[14:12] == 3'b000 || EX_MEM_inst[14:12] == 3'b100) ? `HSIZE_BYTE :    // LB/LBU
-                      (EX_MEM_inst[14:12] == 3'b001 || EX_MEM_inst[14:12] == 3'b101) ? `HSIZE_HALFWORD : // LH/LHU
-                                                                                       `HSIZE_WORD       // LW
-                                                                                   ) : `HSIZE_WORD;
+                       ((EX_MEM_inst[14:12] == 3'b000 || EX_MEM_inst[14:12] == 3'b100) ? `HSIZE_BYTE :    // LB/LBU
+                        (EX_MEM_inst[14:12] == 3'b001 || EX_MEM_inst[14:12] == 3'b101) ? `HSIZE_HALFWORD : // LH/LHU
+                                                                                         `HSIZE_WORD) :      // LW 
+                       EX_MEM_is_load_buffer ? 
+                       ((MEM_WB_inst[14:12] == 3'b000 || MEM_WB_inst[14:12] == 3'b100) ? `HSIZE_BYTE :    
+                        (MEM_WB_inst[14:12] == 3'b001 || MEM_WB_inst[14:12] == 3'b101) ? `HSIZE_HALFWORD :
+                                                                                         `HSIZE_WORD) :                                                          
+                       `HSIZE_WORD;
 assign HSIZE_D = data_size;
 
 // 判断是否需要有效传输
@@ -108,7 +118,7 @@ wire valid_trans = EX_MEM_is_load || EX_MEM_is_store;
 assign HTRANS_D = (valid_trans) ? `HTRANS_NONSEQ : `HTRANS_IDLE;
 
 // 根据读写数据前推情况确定读写的写回数据
-assign load_data = (forward_rs1_L_1 && (EX_MEM_inst[14:12] == 3'b100 || EX_MEM_inst[14:12] == 3'b101)) ? 
+/*assign load_data = (forward_rs1_L_1 && (EX_MEM_inst[14:12] == 3'b100 || EX_MEM_inst[14:12] == 3'b101)) ? 
                    ((data_size == `HSIZE_BYTE) ? {{24{1'b0}}, forward_rs1_L_1_datai[7:0]} : 
                     (data_size == `HSIZE_HALFWORD) ? {{16{1'b0}}, forward_rs1_L_1_datai[15:0]} : 
                     forward_rs1_L_1_datai) :
@@ -130,18 +140,28 @@ assign load_data = (forward_rs1_L_1 && (EX_MEM_inst[14:12] == 3'b100 || EX_MEM_i
                     forward_rs1_L_2_datai) :
                    ((data_size == `HSIZE_BYTE) ? {{24{HRDATA_D[7]}}, HRDATA_D[7:0]} :
                     (data_size == `HSIZE_HALFWORD) ? {{16{HRDATA_D[15]}}, HRDATA_D[15:0]} : 
+                    HRDATA_D);*/
+
+assign load_data = (MEM_WB_inst[14:12] == 3'b100 || MEM_WB_inst[14:12] == 3'b101) ? 
+                   ((data_size == `HSIZE_BYTE) ? {{24{1'b0}}, HRDATA_D[7:0]} :
+                    (data_size == `HSIZE_HALFWORD) ? {{16{1'b0}}, HRDATA_D[15:0]} : 
+                    HRDATA_D) :
+                    ((data_size == `HSIZE_BYTE) ? {{24{HRDATA_D[7]}}, HRDATA_D[7:0]} :
+                    (data_size == `HSIZE_HALFWORD) ? {{16{HRDATA_D[15]}}, HRDATA_D[15:0]} : 
                     HRDATA_D);
 
 always @(posedge CLK) begin
     // 只有在HREADY_D为高时更新流水线寄存器
     if (HREADY_D) begin
-        mem_wb_pc   <= EX_MEM_pc;
-        mem_wb_inst <= EX_MEM_inst;
-        mem_wb_alu  <= EX_MEM_alu;
-        mem_wb_rd   <= EX_MEM_rd;
+        if (!EX_MEM_is_load_buffer) begin
+            mem_wb_pc   <= EX_MEM_pc;
+            mem_wb_inst <= EX_MEM_inst;
+            mem_wb_alu  <= EX_MEM_alu;
+            mem_wb_rd <= EX_MEM_rd;
+        end
         
         // 根据操作类型选择写回数据
-        if (EX_MEM_is_load) begin
+        if (EX_MEM_is_load_buffer) begin
             mem_wb_data <= load_data;
         end else if (EX_MEM_is_sys) begin
             mem_wb_data <= EX_MEM_csr_data;

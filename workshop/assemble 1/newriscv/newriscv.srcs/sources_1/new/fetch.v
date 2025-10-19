@@ -116,6 +116,7 @@ always @(posedge CLK) begin
                 last_bubble <= 1'b1;
             end else if (last_bubble) begin
                 // 处理上一个周期的气泡，保持PC，指令更新为上一个周期的读数据
+                pc <= PC_next;
                 if_id_inst <= HWDATA_I_reg;
                 last_bubble <= 1'b0;
             end else if (valid_trans) begin

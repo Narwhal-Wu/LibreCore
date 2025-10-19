@@ -37,7 +37,8 @@ module decode (
     output        ID_EX_is_jal,
     output        ID_EX_is_sys,
     output        ID_EX_is_branch,
-    output        Load_bubble
+    output        Load_bubble,
+    output        rs2_Flag
 );
 
 reg [31:0] id_ex_inst; 
@@ -63,6 +64,7 @@ assign ID_EX_is_jal    = id_ex_is_jal;
 assign ID_EX_is_sys    = id_ex_is_sys;
 assign ID_EX_is_branch = id_ex_is_branch;
 assign Load_bubble     = load_bubble;
+assign rs2_Flag        = rs2_flag;
 
 wire [31:0] ALL0  = 0;
 wire [31:0] ALL1  = -1;
@@ -80,6 +82,8 @@ reg forward_rs2_EX; //数据前推信号-一级-rs2
 reg forward_rs1_MEM;//数据前推信号-二级-rs1
 reg forward_rs2_MEM;//数据前推信号-二级-rs2
 
+reg rs2_flag;
+
 always @(*) begin
     if ((ID_EX_rd == IF_ID_inst[19:15]) && (ID_EX_rd != 0) && 
         (ID_EX_inst[6:0] != `SCC) && (ID_EX_inst[6:0] != `BCC) && (ID_EX_inst != 0)) forward_rs1_EX = 1;
@@ -96,8 +100,13 @@ always @(*) begin
 end
 
 always @(*) begin
-    if (ID_EX_inst[6:0] == `LCC) load_bubble = 1;
+    if (IF_ID_inst[6:0] == `LCC) load_bubble = 1;
     else                         load_bubble = 0;
+end
+
+always @(posedge CLK) begin
+    if (forward_rs2_MEM && EX_MEM_inst[6:0] == `LCC && EX_MEM_inst[11:7] == IF_ID_inst[24:20]) rs2_flag <= 1;
+    else                                                                                       rs2_flag <= 0;
 end
 
 always @(posedge CLK) begin

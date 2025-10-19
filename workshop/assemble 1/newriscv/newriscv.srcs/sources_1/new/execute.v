@@ -30,6 +30,8 @@ module execute (
     input  [31:0] HRDATA_D,
     input  [31:0] MEM_WB_inst,
     input         Load_bubble,
+    input  [31:0] load_data,
+    input         rs2_Flag,
 
     output [31:0] ID_EX_alu,
     output [31:0] EX_MEM_pc,
@@ -114,12 +116,19 @@ always @(*) begin
 end
 
 //b型分支条件判断
-wire beq_taken  = (forward_rs1_l_1 || forward_rs1_l_2) ? (alu_in1 == ID_EX_rs2) : (ID_EX_rs1 == ID_EX_rs2);
+/*wire beq_taken  = (forward_rs1_l_1 || forward_rs1_l_2) ? (alu_in1 == ID_EX_rs2) : (ID_EX_rs1 == ID_EX_rs2);
 wire bne_taken  = (forward_rs1_l_1 || forward_rs1_l_2) ? (alu_in1 != ID_EX_rs2) : (ID_EX_rs1 != ID_EX_rs2);
 wire blt_taken  = (forward_rs1_l_1 || forward_rs1_l_2) ? ($signed(alu_in1) <  $signed(ID_EX_rs2)) : ($signed(ID_EX_rs1) <  $signed(ID_EX_rs2));
 wire bge_taken  = (forward_rs1_l_1 || forward_rs1_l_2) ? ($signed(alu_in1) >=  $signed(ID_EX_rs2)) : ($signed(ID_EX_rs1) >= $signed(ID_EX_rs2));
 wire bltu_taken = (forward_rs1_l_1 || forward_rs1_l_2) ? (alu_in1 < ID_EX_rs2) : (ID_EX_rs1 <  ID_EX_rs2);
-wire bgeu_taken = (forward_rs1_l_1 || forward_rs1_l_2) ? (alu_in1 >= ID_EX_rs2) : (ID_EX_rs1 >= ID_EX_rs2);
+wire bgeu_taken = (forward_rs1_l_1 || forward_rs1_l_2) ? (alu_in1 >= ID_EX_rs2) : (ID_EX_rs1 >= ID_EX_rs2);*/
+
+wire beq_taken  = rs2_Flag ? (ID_EX_rs1 == load_data) : forward_rs1_l_2 ? (alu_in1 == ID_EX_rs2) : (ID_EX_rs1 == ID_EX_rs2);
+wire bne_taken  = rs2_Flag ? (ID_EX_rs1 != load_data) : forward_rs1_l_2 ? (alu_in1 != ID_EX_rs2) : (ID_EX_rs1 != ID_EX_rs2);
+wire blt_taken  = rs2_Flag ? ($signed(ID_EX_rs1) <  $signed(load_data)) : forward_rs1_l_2 ? ($signed(alu_in1) <  $signed(ID_EX_rs2)) : ($signed(ID_EX_rs1) <  $signed(ID_EX_rs2));
+wire bge_taken  = rs2_Flag ? ($signed(ID_EX_rs1) >= $signed(load_data)) : forward_rs1_l_2 ? ($signed(alu_in1) >= $signed(ID_EX_rs2)) : ($signed(ID_EX_rs1) >= $signed(ID_EX_rs2));
+wire bltu_taken = rs2_Flag ? (ID_EX_rs1 <  load_data) : forward_rs1_l_2 ? (alu_in1 <  ID_EX_rs2) : (ID_EX_rs1 <  ID_EX_rs2);
+wire bgeu_taken = rs2_Flag ? (ID_EX_rs1 >= load_data) : forward_rs1_l_2 ? (alu_in1 >= ID_EX_rs2) : (ID_EX_rs1 >= ID_EX_rs2);
 
 //综合分支跳转条件
 assign branch_cond_taken = 
@@ -135,7 +144,7 @@ assign branch_cond_taken =
 wire [31:0] jalr_target = (alu_in1 + ID_EX_imm); 
 
 //跳转目标地址选择
-wire [31:0] branch_target = ID_EX_is_jalr ? jalr_target : (ID_EX_pc + ID_EX_imm);
+wire [31:0] branch_target = ID_EX_is_jalr ? jalr_target : (ID_EX_pc + ID_EX_imm - 4);
 
 reg branch_taken_buffer;
 reg branch_taken_buffer2;
