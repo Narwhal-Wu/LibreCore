@@ -8,7 +8,7 @@ digraph soc_architecture {
     title [label="LibreCore SoC 系统架构\nSoC System Architecture", 
            shape=plaintext, fontsize=16, fontname="Arial Bold"];
     
-    // External interfaces at top
+    // External interfaces at left side - vertically arranged
     subgraph cluster_external {
         label="外部接口 (External Interfaces)";
         labelloc="t";
@@ -29,6 +29,9 @@ digraph soc_architecture {
         BUTTONS [label="按键输入\nButtons (5x)"];
         LEDS [label="LED 输出\nLEDs (16x)"];
         DISPLAY [label="数码管\n7-Segment"];
+        
+        // Force vertical arrangement
+        CLK_IN -> RESET_IN -> UART_IO -> BUTTONS -> LEDS -> DISPLAY [style=invis];
     }
     
     // Main SoC container
