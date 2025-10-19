@@ -1,0 +1,96 @@
+digraph ahb_interconnect {
+    rankdir=LR;
+    bgcolor="white";
+    node [fontname="Arial", fontsize=11];
+    edge [fontname="Arial", fontsize=9];
+    
+    // Title
+    label="AHB Interconnect Module\nBus Arbitration and Data Routing";
+    labelloc="t";
+    fontname="Arial Bold";
+    fontsize=14;
+    
+    // Input signals
+    subgraph cluster_inputs {
+        label="Input Signals";
+        labelloc="t";
+        style="filled";
+        fillcolor="#f0f8ff";
+        color="#4169e1";
+        penwidth=2;
+        
+        node [shape=ellipse, style="filled", fillcolor="#e6f3ff", 
+              color="#4682b4", penwidth=2];
+        
+        CLK [label="HCLK\nClock"];
+        RES [label="HRESETn\nReset"];
+        HADDR [label="HADDR\nAddress Bus"];
+        HRDATA0 [label="HRDATA0\nSlave 0 Data"];
+        HRESP0 [label="HRESP0\nSlave 0 Response"];
+        HREADY0 [label="HREADYOUT0\nSlave 0 Ready"];
+        HRDATA1 [label="HRDATA1\nSlave 1 Data"];
+        HRESP1 [label="HRESP1\nSlave 1 Response"];
+        HREADY1 [label="HREADYOUT1\nSlave 1 Ready"];
+    }
+    
+    // Main module
+    subgraph cluster_module {
+        label="";
+        style="rounded,filled";
+        fillcolor="#fff5f5";
+        color="#ff6347";
+        penwidth=3;
+        
+        node [shape=box, style="rounded,filled"];
+        
+        // AHB Decoder
+        DECODER [label="AHB Decoder\n• Address Decode\n• Generate Slave Select", 
+                fillcolor="#ffb6c1", color="#ff6347", penwidth=2, fontsize=11];
+        
+        // AHB Multiplexor
+        MUX [label="AHB Multiplexor\n• Data Routing\n• Response Selection\n• Ready Signal Management", 
+            fillcolor="#ffc0cb", color="#ff6347", penwidth=2, fontsize=11];
+    }
+    
+    // Output signals
+    subgraph cluster_outputs {
+        label="Output Signals";
+        labelloc="t";
+        style="filled";
+        fillcolor="#f0fff0";
+        color="#228b22";
+        penwidth=2;
+        
+        node [shape=ellipse, style="filled", fillcolor="#e6ffe6", 
+              color="#2e8b57", penwidth=2];
+        
+        HRDATA [label="HRDATA\nRead Data"];
+        HRESP [label="HRESP\nTransfer Response"];
+        HSEL [label="HSEL\nSlave Select"];
+        HREADY [label="HREADY\nBus Ready"];
+    }
+    
+    // Input connections
+    CLK -> MUX [label="Clock", color="#4169e1", penwidth=1.5, style="dashed"];
+    RES -> DECODER [label="Reset", color="#ff0000", penwidth=1.5, style="dashed"];
+    RES -> MUX [label="Reset", color="#ff0000", penwidth=1.5, style="dashed"];
+    
+    HADDR -> DECODER [label="Address", color="#ff6347", penwidth=2];
+    
+    HRDATA0 -> MUX [label="Data 0", color="#4169e1", penwidth=1.5];
+    HRESP0 -> MUX [label="Resp 0", color="#4169e1", penwidth=1.5, style="dashed"];
+    HREADY0 -> MUX [label="Ready 0", color="#4169e1", penwidth=1.5, style="dashed"];
+    
+    HRDATA1 -> MUX [label="Data 1", color="#9370db", penwidth=1.5];
+    HRESP1 -> MUX [label="Resp 1", color="#9370db", penwidth=1.5, style="dashed"];
+    HREADY1 -> MUX [label="Ready 1", color="#9370db", penwidth=1.5, style="dashed"];
+    
+    // Internal connections
+    DECODER -> MUX [label="Select Signal", color="#ff6347", penwidth=2];
+    
+    // Output connections
+    DECODER -> HSEL [label="HSEL[1:0]", color="#228b22", penwidth=2];
+    MUX -> HRDATA [label="Data", color="#228b22", penwidth=2];
+    MUX -> HRESP [label="Response", color="#228b22", penwidth=1.5];
+    MUX -> HREADY [label="Ready", color="#228b22", penwidth=1.5];
+}

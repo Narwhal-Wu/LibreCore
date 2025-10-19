@@ -5,12 +5,12 @@ digraph soc_architecture {
     edge [fontname="Arial", fontsize=9];
     
     // Title node
-    title [label="LibreCore SoC 系统架构\nSoC System Architecture", 
+    title [label="LibreCore SoC System Architecture", 
            shape=plaintext, fontsize=16, fontname="Arial Bold"];
     
-    // External interfaces at top
+    // External interfaces at left side - vertically arranged
     subgraph cluster_external {
-        label="外部接口 (External Interfaces)";
+        label="External Interfaces";
         labelloc="t";
         fontname="Arial";
         fontsize=12;
@@ -21,19 +21,22 @@ digraph soc_architecture {
         node [shape=box, style="rounded,filled", fillcolor="#fffacd", 
               color="#daa520", penwidth=2];
         
-        CLK_IN [label="时钟输入\nCLK 100MHz"];
-        RESET_IN [label="复位信号\nRESET"];
+        CLK_IN [label="Clock Input\nCLK 100MHz"];
+        RESET_IN [label="Reset Signal\nRESET"];
         
         node [shape=parallelogram, fillcolor="#e6e6fa", color="#9370db", penwidth=2];
         UART_IO [label="UART\nRX/TX"];
-        BUTTONS [label="按键输入\nButtons (5x)"];
-        LEDS [label="LED 输出\nLEDs (16x)"];
-        DISPLAY [label="数码管\n7-Segment"];
+        BUTTONS [label="Button Input\nButtons (5x)"];
+        LEDS [label="LED Output\nLEDs (16x)"];
+        DISPLAY [label="7-Segment Display"];
+        
+        // Force vertical arrangement
+        CLK_IN -> RESET_IN -> UART_IO -> BUTTONS -> LEDS -> DISPLAY [style=invis];
     }
     
     // Main SoC container
     subgraph cluster_soc {
-        label="SoC 芯片内部 (SoC Internal)";
+        label="SoC Internal";
         labelloc="b";
         fontname="Arial Bold";
         fontsize=13;
@@ -44,7 +47,7 @@ digraph soc_architecture {
         
         // CPU Core
         subgraph cluster_cpu {
-            label="RISC-V 处理器核心 (CPU Core)";
+            label="RISC-V CPU Core";
             labelloc="t";
             fontname="Arial";
             fontsize=12;
@@ -53,14 +56,14 @@ digraph soc_architecture {
             color="#4169e1";
             penwidth=2;
             
-            CPU [label="myCPU\n五级流水线处理器\nRV32I 指令集\n\nAHB-I / AHB-D",
+            CPU [label="myCPU\nFive-Stage Pipeline Processor\nRV32I Instruction Set\n\nAHB-I / AHB-D",
                  shape=box, style="rounded,filled", fillcolor="#b0d4ff", color="#4169e1", 
                  penwidth=2, fontsize=11];
         }
         
         // AHB Bus System
         subgraph cluster_ahb {
-            label="AHB 总线互连系统 (AHB Interconnect)";
+            label="AHB Bus Interconnect System";
             labelloc="t";
             fontname="Arial";
             fontsize=12;
@@ -71,16 +74,16 @@ digraph soc_architecture {
             
             node [shape=box, style="rounded,filled", fontsize=10];
             
-            DECODER [label="地址译码器\nAHB Decoder\n(地址路由)", 
+            DECODER [label="Address Decoder\nAHB Decoder", 
                     fillcolor="#ffd700", color="#ff8c00", penwidth=2];
             
-            MUX [label="数据多路复用器\nAHB Multiplexer\n(数据选择)", 
+            MUX [label="Data Multiplexer\nAHB Multiplexer", 
                 fillcolor="#ffd700", color="#ff8c00", penwidth=2];
         }
         
         // Memory Subsystem
         subgraph cluster_memory {
-            label="存储子系统 (Memory Subsystem)";
+            label="Memory Subsystem";
             labelloc="t";
             fontname="Arial";
             fontsize=12;
@@ -94,10 +97,10 @@ digraph soc_architecture {
                 rank=same;
                 node [shape=box, style="rounded,filled", fontsize=10];
                 
-                IROM_CTRL [label="指令 ROM 控制器\nIROM Controller\n(AHB → ROM)", 
+                IROM_CTRL [label="Instruction ROM Controller\nIROM Controller\n(AHB → ROM)", 
                           fillcolor="#afeeee", color="#20b2aa", penwidth=2];
                 
-                BRAM_CTRL [label="数据 RAM 控制器\nBRAM Controller\n(AHB → RAM)", 
+                BRAM_CTRL [label="Data RAM Controller\nBRAM Controller\n(AHB → RAM)", 
                           fillcolor="#afeeee", color="#20b2aa", penwidth=2];
             }
             
@@ -106,17 +109,17 @@ digraph soc_architecture {
                 rank=same;
                 node [shape=cylinder, style="filled", fontsize=10];
                 
-                IROM [label="指令存储器\nInstruction ROM\n64 KB", 
+                IROM [label="Instruction Memory\nInstruction ROM\n64 KB", 
                      fillcolor="#f0ffff", color="#48d1cc", penwidth=2];
                 
-                BRAM [label="数据存储器\nData RAM\n64 KB", 
+                BRAM [label="Data Memory\nData RAM\n64 KB", 
                      fillcolor="#f0ffff", color="#48d1cc", penwidth=2];
             }
         }
         
         // Clock and Reset System
         subgraph cluster_clk {
-            label="时钟与复位系统 (Clock & Reset)";
+            label="Clock & Reset System";
             labelloc="t";
             fontname="Arial";
             fontsize=11;
@@ -127,13 +130,13 @@ digraph soc_architecture {
             
             node [shape=box, style="rounded,filled", fontsize=10];
             
-            PLL [label="PLL 时钟管理\nPhase-Locked Loop", 
+            PLL [label="PLL Clock Management\nPhase-Locked Loop", 
                 fillcolor="#ffe4b5", color="#ff8c00", penwidth=2];
         }
         
-        // Peripheral Subsystem
+        // Peripheral Subsystem - vertically arranged
         subgraph cluster_periph {
-            label="外设子系统 (Peripheral Subsystem)";
+            label="Peripheral Subsystem";
             labelloc="t";
             fontname="Arial";
             fontsize=11;
@@ -144,17 +147,20 @@ digraph soc_architecture {
             
             node [shape=box, style="rounded,filled", fontsize=10];
             
-            UART [label="UART 控制器\nSerial Interface", 
-                 fillcolor="#90ee90", color="#228b22", penwidth=2];
-            
-            SEG7 [label="数码管控制器\n7-Segment Driver", 
-                 fillcolor="#90ee90", color="#228b22", penwidth=2];
-            
-            LED [label="LED 控制器\nLED Driver", 
+            KEY [label="Key Debounce", 
                 fillcolor="#90ee90", color="#228b22", penwidth=2];
             
-            KEY [label="按键消抖\nKey Debounce", 
+            UART [label="UART Controller\nSerial Interface", 
+                 fillcolor="#90ee90", color="#228b22", penwidth=2];
+            
+            LED [label="LED Driver", 
                 fillcolor="#90ee90", color="#228b22", penwidth=2];
+            
+            SEG7 [label="7-Segment Driver", 
+                 fillcolor="#90ee90", color="#228b22", penwidth=2];
+            
+            // Force vertical arrangement
+            KEY -> UART -> LED -> SEG7 [style=invis];
         }
     }
     
@@ -163,7 +169,7 @@ digraph soc_architecture {
     
     // External to Clock/Reset
     CLK_IN -> PLL [label="100MHz", color="#ff8c00", penwidth=2];
-    RESET_IN -> PLL [label="复位", color="#ff0000", penwidth=2];
+    RESET_IN -> PLL [label="Reset", color="#ff0000", penwidth=2];
     
     // Clock distribution (from PLL)
     edge [label="CLK", color="#ffa500", style="dashed", penwidth=1.5];
@@ -175,21 +181,21 @@ digraph soc_architecture {
     edge [label="", style="solid"];
     
     // CPU to AHB Bus
-    CPU -> DECODER [label="指令地址\nHADDR_I", color="#4169e1", penwidth=2];
-    CPU -> DECODER [label="数据地址\nHADDR_D", color="#9370db", penwidth=2];
+    CPU -> DECODER [label="Instruction Address\nHADDR_I", color="#4169e1", penwidth=2];
+    CPU -> DECODER [label="Data Address\nHADDR_D", color="#9370db", penwidth=2];
     
     // AHB Decoder to Controllers
     DECODER -> IROM_CTRL [label="HSEL_IROM", color="#20b2aa", penwidth=2];
     DECODER -> BRAM_CTRL [label="HSEL_BRAM", color="#20b2aa", penwidth=2];
     
     // Controllers to Memory
-    IROM_CTRL -> IROM [label="地址/控制", color="#48d1cc", penwidth=1.5];
-    BRAM_CTRL -> BRAM [label="地址/控制", color="#48d1cc", penwidth=1.5];
+    IROM_CTRL -> IROM [label="Address/Control", color="#48d1cc", penwidth=1.5];
+    BRAM_CTRL -> BRAM [label="Address/Control", color="#48d1cc", penwidth=1.5];
     
     // Memory read back
-    IROM -> IROM_CTRL [label="指令数据", color="#48d1cc", 
+    IROM -> IROM_CTRL [label="Instruction Data", color="#48d1cc", 
                         penwidth=1.5, style="dashed"];
-    BRAM -> BRAM_CTRL [label="读写数据", color="#48d1cc", 
+    BRAM -> BRAM_CTRL [label="Read/Write Data", color="#48d1cc", 
                         penwidth=1.5, style="dashed", dir=both];
     
     // Controllers to MUX
@@ -199,25 +205,25 @@ digraph soc_architecture {
                       penwidth=1.5, style="dashed"];
     
     // MUX back to CPU
-    MUX -> CPU [label="指令", color="#4169e1", penwidth=2, style="dashed"];
-    MUX -> CPU [label="数据", color="#9370db", penwidth=2, style="dashed"];
+    MUX -> CPU [label="Instruction", color="#4169e1", penwidth=2, style="dashed"];
+    MUX -> CPU [label="Data", color="#9370db", penwidth=2, style="dashed"];
     
     // External to Peripherals
-    BUTTONS -> KEY [label="输入", color="#228b22", penwidth=1.5];
-    KEY -> CPU [label="按键值", color="#228b22", penwidth=1, style="dotted"];
+    BUTTONS -> KEY [label="Input", color="#228b22", penwidth=1.5];
+    KEY -> CPU [label="Key Value", color="#228b22", penwidth=1, style="dotted"];
     
-    CPU -> SEG7 [label="显示数据", color="#228b22", penwidth=1, style="dotted"];
-    CPU -> LED [label="LED 状态", color="#228b22", penwidth=1, style="dotted"];
-    CPU -> UART [label="串口数据", color="#228b22", penwidth=1, style="dotted"];
+    CPU -> SEG7 [label="显示Data", color="#228b22", penwidth=1, style="dotted"];
+    CPU -> LED [label="LED Status", color="#228b22", penwidth=1, style="dotted"];
+    CPU -> UART [label="串口Data", color="#228b22", penwidth=1, style="dotted"];
     
     // Peripherals to External
-    SEG7 -> DISPLAY [label="驱动", color="#228b22", penwidth=1.5];
-    LED -> LEDS [label="驱动", color="#228b22", penwidth=1.5];
+    SEG7 -> DISPLAY [label="Drive", color="#228b22", penwidth=1.5];
+    LED -> LEDS [label="Drive", color="#228b22", penwidth=1.5];
     UART -> UART_IO [label="TX/RX", color="#228b22", penwidth=1.5, dir=both];
     
     // Legend
     subgraph cluster_legend {
-        label="图例 (Legend)";
+        label="Legend";
         labelloc="b";
         fontname="Arial";
         fontsize=10;
@@ -228,9 +234,9 @@ digraph soc_architecture {
         node [shape=plaintext, fontsize=9];
         legend [label=<
             <TABLE BORDER="0" CELLBORDER="0" CELLSPACING="2">
-            <TR><TD ALIGN="LEFT">━━━━ 实线：数据/地址通路</TD></TR>
-            <TR><TD ALIGN="LEFT">┈┈┈┈ 虚线：读取数据返回</TD></TR>
-            <TR><TD ALIGN="LEFT">······ 点线：控制/状态信号</TD></TR>
+            <TR><TD ALIGN="LEFT">━━━━ 实线：Data/地址通路</TD></TR>
+            <TR><TD ALIGN="LEFT">┈┈┈┈ 虚线：Read Data返回</TD></TR>
+            <TR><TD ALIGN="LEFT">······ Dotted: Control/Status Signal</TD></TR>
             </TABLE>
         >];
     }

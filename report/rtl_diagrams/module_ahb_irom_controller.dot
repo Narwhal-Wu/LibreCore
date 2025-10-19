@@ -1,0 +1,146 @@
+digraph ahb_irom_controller {
+    rankdir=LR;
+    bgcolor="white";
+    node [fontname="Arial", fontsize=11];
+    edge [fontname="Arial", fontsize=9];
+    
+    // Title
+    label="IROM Controller Module\nAHB to Instruction ROM Protocol Conversion";
+    labelloc="t";
+    fontname="Arial Bold";
+    fontsize=14;
+    
+    // Input signals
+    subgraph cluster_inputs {
+        label="AHB Interface Inputs";
+        labelloc="t";
+        style="filled";
+        fillcolor="#f0f8ff";
+        color="#4169e1";
+        penwidth=2;
+        
+        node [shape=ellipse, style="filled", fillcolor="#e6f3ff", 
+              color="#4682b4", penwidth=2, fontsize=10];
+        
+        CLK [label="HCLK"];
+        RES [label="HRESETn"];
+        HSEL [label="HSELx\nChip Select"];
+        HADDR [label="HADDR\nAddress"];
+        HWRITE [label="HWRITE\nWrite Enable"];
+        HSIZE [label="HSIZE\nTransfer Size"];
+        HTRANS [label="HTRANS\nTransfer Type"];
+        HREADY [label="HREADY\nReady Input"];
+    }
+    
+    // ROM input
+    subgraph cluster_rom_in {
+        label="ROM Data Input";
+        labelloc="t";
+        style="filled";
+        fillcolor="#fff0f0";
+        color="#dc143c";
+        penwidth=2;
+        
+        node [shape=ellipse, style="filled", fillcolor="#ffe6e6", 
+              color="#dc143c", penwidth=2];
+        
+        ROM_DOUT [label="bram_douta\nROM Read Data"];
+    }
+    
+    // Main module
+    subgraph cluster_module {
+        label="";
+        style="rounded,filled";
+        fillcolor="#f0f0ff";
+        color="#6a5acd";
+        penwidth=3;
+        
+        node [shape=box, style="rounded,filled"];
+        
+        // Protocol converter
+        PROTO [label="AHB Protocol Control\n• State Machine\n• Address Latch\n• Read-Only Control", 
+              fillcolor="#dda0dd", color="#9370db", penwidth=2, fontsize=11];
+        
+        // Address translator
+        ADDR [label="Address Translation\n• Byte Offset\n• Alignment Check", 
+             fillcolor="#e6e6fa", color="#6a5acd", penwidth=2, fontsize=10];
+        
+        // Read control
+        READ [label="Read Control Logic\n• Data Alignment\n• Size Extension\n• Continuous Read", 
+             fillcolor="#b0c4de", color="#4682b4", penwidth=2, fontsize=10];
+        
+        // Write check
+        WRITE_CHK [label="Write Protection Check\n• Write Operation Detect\n• Return Error", 
+                  fillcolor="#ffb6c1", color="#ff1493", penwidth=2, fontsize=10];
+        
+        // Response generator
+        RESP [label="Response Generation\n• HRESP\n• HREADYOUT", 
+             fillcolor="#98fb98", color="#228b22", penwidth=2, fontsize=10];
+    }
+    
+    // Output signals - AHB
+    subgraph cluster_outputs_ahb {
+        label="AHB Interface Outputs";
+        labelloc="t";
+        style="filled";
+        fillcolor="#f0fff0";
+        color="#228b22";
+        penwidth=2;
+        
+        node [shape=ellipse, style="filled", fillcolor="#e6ffe6", 
+              color="#2e8b57", penwidth=2, fontsize=10];
+        
+        HRDATA [label="HRDATA\nRead Data"];
+        HRESP [label="HRESP\nResponse"];
+        HREADYOUT [label="HREADYOUT\nReady Output"];
+    }
+    
+    // Output signals - ROM
+    subgraph cluster_outputs_rom {
+        label="ROM Interface Outputs";
+        labelloc="t";
+        style="filled";
+        fillcolor="#fff0ff";
+        color="#9370db";
+        penwidth=2;
+        
+        node [shape=ellipse, style="filled", fillcolor="#f3e6ff", 
+              color="#8b008b", penwidth=2, fontsize=10];
+        
+        ROM_ADDR [label="bram_addra\nAddress"];
+        ROM_EN [label="bram_ena\nEnable"];
+    }
+    
+    // Input connections
+    CLK -> PROTO [label="Clock", color="#4169e1", penwidth=1.5];
+    RES -> PROTO [label="Reset", color="#ff0000", penwidth=1.5];
+    HSEL -> PROTO [color="#4169e1", penwidth=1.5, style="dashed"];
+    HTRANS -> PROTO [color="#4169e1", penwidth=1.5, style="dashed"];
+    HREADY -> PROTO [color="#4169e1", penwidth=1.5, style="dashed"];
+    
+    HADDR -> ADDR [label="Address", color="#6a5acd", penwidth=2];
+    HSIZE -> ADDR [color="#6a5acd", penwidth=1.5, style="dashed"];
+    
+    HWRITE -> WRITE_CHK [label="Write Detect", color="#ff1493", penwidth=2];
+    
+    HSIZE -> READ [color="#4682b4", penwidth=1.5, style="dashed"];
+    ROM_DOUT -> READ [label="ROM Data", color="#dc143c", penwidth=2];
+    
+    // Internal connections
+    PROTO -> ADDR [label="Control", color="#6a5acd", penwidth=1.5];
+    PROTO -> READ [label="Control", color="#6a5acd", penwidth=1.5, style="dashed"];
+    PROTO -> RESP [label="State", color="#6a5acd", penwidth=1.5];
+    
+    ADDR -> READ [label="Offset", color="#6a5acd", penwidth=1.5, style="dashed"];
+    
+    WRITE_CHK -> RESP [label="Error", color="#ff1493", penwidth=2, style="dashed"];
+    
+    // Output connections - AHB
+    READ -> HRDATA [label="Aligned Data", color="#228b22", penwidth=2];
+    RESP -> HRESP [color="#228b22", penwidth=1.5];
+    RESP -> HREADYOUT [color="#228b22", penwidth=1.5];
+    
+    // Output connections - ROM
+    ADDR -> ROM_ADDR [label="Translated", color="#9370db", penwidth=2];
+    PROTO -> ROM_EN [color="#9370db", penwidth=1.5];
+}
