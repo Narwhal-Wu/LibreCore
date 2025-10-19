@@ -1,5 +1,5 @@
 digraph pipeline_architecture {
-    rankdir=LR;
+    rankdir=TB;
     bgcolor="white";
     node [fontname="Arial", fontsize=12];
     edge [fontname="Arial", fontsize=10];
