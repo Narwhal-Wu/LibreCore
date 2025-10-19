@@ -1,0 +1,96 @@
+digraph ahb_interconnect {
+    rankdir=LR;
+    bgcolor="white";
+    node [fontname="Arial", fontsize=11];
+    edge [fontname="Arial", fontsize=9];
+    
+    // Title
+    label="AHB 互连模块 (AHB Interconnect)\n负责总线仲裁和数据路由";
+    labelloc="t";
+    fontname="Arial Bold";
+    fontsize=14;
+    
+    // Input signals
+    subgraph cluster_inputs {
+        label="输入信号";
+        labelloc="t";
+        style="filled";
+        fillcolor="#f0f8ff";
+        color="#4169e1";
+        penwidth=2;
+        
+        node [shape=ellipse, style="filled", fillcolor="#e6f3ff", 
+              color="#4682b4", penwidth=2];
+        
+        CLK [label="HCLK\n时钟"];
+        RES [label="HRESETn\n复位"];
+        HADDR [label="HADDR\n地址总线"];
+        HRDATA0 [label="HRDATA0\n从设备0数据"];
+        HRESP0 [label="HRESP0\n从设备0响应"];
+        HREADY0 [label="HREADYOUT0\n从设备0就绪"];
+        HRDATA1 [label="HRDATA1\n从设备1数据"];
+        HRESP1 [label="HRESP1\n从设备1响应"];
+        HREADY1 [label="HREADYOUT1\n从设备1就绪"];
+    }
+    
+    // Main module
+    subgraph cluster_module {
+        label="";
+        style="rounded,filled";
+        fillcolor="#fff5f5";
+        color="#ff6347";
+        penwidth=3;
+        
+        node [shape=box, style="rounded,filled"];
+        
+        // AHB Decoder
+        DECODER [label="AHB 译码器\n• 地址译码\n• 生成从设备选择", 
+                fillcolor="#ffb6c1", color="#ff6347", penwidth=2, fontsize=11];
+        
+        // AHB Multiplexor
+        MUX [label="AHB 多路复用器\n• 数据路由\n• 响应选择\n• 就绪信号管理", 
+            fillcolor="#ffc0cb", color="#ff6347", penwidth=2, fontsize=11];
+    }
+    
+    // Output signals
+    subgraph cluster_outputs {
+        label="输出信号";
+        labelloc="t";
+        style="filled";
+        fillcolor="#f0fff0";
+        color="#228b22";
+        penwidth=2;
+        
+        node [shape=ellipse, style="filled", fillcolor="#e6ffe6", 
+              color="#2e8b57", penwidth=2];
+        
+        HRDATA [label="HRDATA\n读数据"];
+        HRESP [label="HRESP\n传输响应"];
+        HSEL [label="HSEL\n从设备选择"];
+        HREADY [label="HREADY\n总线就绪"];
+    }
+    
+    // Input connections
+    CLK -> MUX [label="时钟", color="#4169e1", penwidth=1.5, style="dashed"];
+    RES -> DECODER [label="复位", color="#ff0000", penwidth=1.5, style="dashed"];
+    RES -> MUX [label="复位", color="#ff0000", penwidth=1.5, style="dashed"];
+    
+    HADDR -> DECODER [label="地址", color="#ff6347", penwidth=2];
+    
+    HRDATA0 -> MUX [label="数据0", color="#4169e1", penwidth=1.5];
+    HRESP0 -> MUX [label="响应0", color="#4169e1", penwidth=1.5, style="dashed"];
+    HREADY0 -> MUX [label="就绪0", color="#4169e1", penwidth=1.5, style="dashed"];
+    
+    HRDATA1 -> MUX [label="数据1", color="#9370db", penwidth=1.5];
+    HRESP1 -> MUX [label="响应1", color="#9370db", penwidth=1.5, style="dashed"];
+    HREADY1 -> MUX [label="就绪1", color="#9370db", penwidth=1.5, style="dashed"];
+    
+    // Internal connections
+    DECODER -> MUX [label="选择信号", color="#ff6347", penwidth=2];
+    
+    // Output connections
+    DECODER -> HSEL [label="HSEL[1:0]", color="#228b22", penwidth=2];
+    MUX -> HRDATA [label="数据", color="#228b22", penwidth=2];
+    MUX -> HRESP [label="响应", color="#228b22", penwidth=1.5];
+    MUX -> HREADY [label="就绪", color="#228b22", penwidth=1.5];
+}

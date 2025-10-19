@@ -405,45 +405,47 @@ Writeback模块负责将执行结果写回寄存器堆。
 
 #### 3.2.6 AHB Interconnect模块
 
-![AHB Interconnect 详细RTL](rtl_diagrams/7_ahb_interconnect.svg)
+![AHB Interconnect模块框图](rtl_diagrams/module_ahb_interconnect.svg)
 
 **功能描述：**
 AHB互连模块实现总线仲裁和数据路由。
+
+**主要功能：**
+- 地址译码：根据地址自动选择从设备
+- 数据路由：将从设备响应路由回主设备
+- 响应管理：合并多个从设备的响应和就绪信号
 
 **子模块：**
 - **AHB Decoder**：根据地址译码，生成从设备选择信号
 - **AHB Multiplexor**：根据选择信号，将从设备响应路由回主设备
 
-*注：以上为详细RTL结构图，展示完整的逻辑门级实现。*
-
 #### 3.2.7 BRAM Controller模块
 
-![BRAM Controller 详细RTL](rtl_diagrams/8_ahb_bram_controller.svg)
+![BRAM Controller模块框图](rtl_diagrams/module_ahb_bram_controller.svg)
 
 **功能描述：**
 BRAM控制器将AHB协议转换为Block RAM接口协议。
 
 **主要功能：**
-- AHB到BRAM协议转换
-- 支持字节、半字、字的读写
-- 处理BRAM的1周期延迟
-- 生成BRAM的字节写使能信号
-
-*注：以上为详细RTL结构图，展示完整的逻辑门级实现。*
+- AHB到BRAM协议转换：通过状态机管理传输流程
+- 支持字节、半字、字的读写：灵活的数据大小控制
+- 处理BRAM的1周期延迟：读数据对齐和延迟处理
+- 生成BRAM的字节写使能信号：根据HSIZE和地址偏移生成写使能
+- 数据对齐：自动处理非对齐访问的数据对齐
 
 #### 3.2.8 IROM Controller模块
 
-![IROM Controller 详细RTL](rtl_diagrams/9_ahb_irom_controller.svg)
+![IROM Controller模块框图](rtl_diagrams/module_ahb_irom_controller.svg)
 
 **功能描述：**
 IROM控制器将AHB协议转换为Block ROM接口协议，用于指令存储。
 
 **主要功能：**
-- AHB到ROM协议转换
-- 只读访问，写操作返回错误
-- 支持连续读取
-
-*注：以上为详细RTL结构图，展示完整的逻辑门级实现。*
+- AHB到ROM协议转换：通过状态机管理只读传输
+- 只读访问：写操作自动返回错误响应
+- 支持连续读取：优化顺序读取性能
+- 数据对齐：支持字节、半字、字的读取并自动对齐
+- 地址转换：将AHB地址转换为ROM地址
 
 ### 3.3 资源使用设计
 

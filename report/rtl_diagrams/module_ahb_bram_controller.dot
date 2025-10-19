@@ -1,0 +1,153 @@
+digraph ahb_bram_controller {
+    rankdir=LR;
+    bgcolor="white";
+    node [fontname="Arial", fontsize=11];
+    edge [fontname="Arial", fontsize=9];
+    
+    // Title
+    label="BRAM 控制器模块 (BRAM Controller)\nAHB 到 BRAM 协议转换";
+    labelloc="t";
+    fontname="Arial Bold";
+    fontsize=14;
+    
+    // Input signals
+    subgraph cluster_inputs {
+        label="AHB 接口输入";
+        labelloc="t";
+        style="filled";
+        fillcolor="#f0f8ff";
+        color="#4169e1";
+        penwidth=2;
+        
+        node [shape=ellipse, style="filled", fillcolor="#e6f3ff", 
+              color="#4682b4", penwidth=2, fontsize=10];
+        
+        CLK [label="HCLK"];
+        RES [label="HRESETn"];
+        HSEL [label="HSELx\n片选"];
+        HADDR [label="HADDR\n地址"];
+        HWRITE [label="HWRITE\n写使能"];
+        HSIZE [label="HSIZE\n传输大小"];
+        HTRANS [label="HTRANS\n传输类型"];
+        HREADY [label="HREADY\n就绪输入"];
+        HWDATA [label="HWDATA\n写数据"];
+    }
+    
+    // BRAM input
+    subgraph cluster_bram_in {
+        label="BRAM 数据输入";
+        labelloc="t";
+        style="filled";
+        fillcolor="#fff0f0";
+        color="#dc143c";
+        penwidth=2;
+        
+        node [shape=ellipse, style="filled", fillcolor="#ffe6e6", 
+              color="#dc143c", penwidth=2];
+        
+        BRAM_DOUT [label="bram_douta\nBRAM读数据"];
+    }
+    
+    // Main module
+    subgraph cluster_module {
+        label="";
+        style="rounded,filled";
+        fillcolor="#fffaf0";
+        color="#ff8c00";
+        penwidth=3;
+        
+        node [shape=box, style="rounded,filled"];
+        
+        // Protocol converter
+        PROTO [label="AHB 协议控制\n• 状态机\n• 地址锁存\n• 数据锁存", 
+              fillcolor="#ffd700", color="#ff8c00", penwidth=2, fontsize=11];
+        
+        // Address translator
+        ADDR [label="地址转换\n• 字节偏移\n• 对齐处理", 
+             fillcolor="#ffe4b5", color="#ff8c00", penwidth=2, fontsize=10];
+        
+        // Write control
+        WRITE [label="写控制逻辑\n• 字节写使能\n• 数据对齐\n• 大小译码", 
+              fillcolor="#ffb6c1", color="#ff1493", penwidth=2, fontsize=10];
+        
+        // Read control
+        READ [label="读控制逻辑\n• 数据对齐\n• 大小扩展\n• 1周期延迟", 
+             fillcolor="#afeeee", color="#20b2aa", penwidth=2, fontsize=10];
+        
+        // Response generator
+        RESP [label="响应生成\n• HRESP\n• HREADYOUT", 
+             fillcolor="#98fb98", color="#228b22", penwidth=2, fontsize=10];
+    }
+    
+    // Output signals - AHB
+    subgraph cluster_outputs_ahb {
+        label="AHB 接口输出";
+        labelloc="t";
+        style="filled";
+        fillcolor="#f0fff0";
+        color="#228b22";
+        penwidth=2;
+        
+        node [shape=ellipse, style="filled", fillcolor="#e6ffe6", 
+              color="#2e8b57", penwidth=2, fontsize=10];
+        
+        HRDATA [label="HRDATA\n读数据"];
+        HRESP [label="HRESP\n响应"];
+        HREADYOUT [label="HREADYOUT\n就绪输出"];
+    }
+    
+    // Output signals - BRAM
+    subgraph cluster_outputs_bram {
+        label="BRAM 接口输出";
+        labelloc="t";
+        style="filled";
+        fillcolor="#fff0ff";
+        color="#9370db";
+        penwidth=2;
+        
+        node [shape=ellipse, style="filled", fillcolor="#f3e6ff", 
+              color="#8b008b", penwidth=2, fontsize=10];
+        
+        BRAM_ADDR [label="bram_addra\n地址"];
+        BRAM_DIN [label="bram_dina\n写数据"];
+        BRAM_EN [label="bram_ena\n使能"];
+        BRAM_WE [label="bram_wea[3:0]\n字节写使能"];
+    }
+    
+    // Input connections
+    CLK -> PROTO [label="时钟", color="#4169e1", penwidth=1.5];
+    RES -> PROTO [label="复位", color="#ff0000", penwidth=1.5];
+    HSEL -> PROTO [color="#4169e1", penwidth=1.5, style="dashed"];
+    HTRANS -> PROTO [color="#4169e1", penwidth=1.5, style="dashed"];
+    HREADY -> PROTO [color="#4169e1", penwidth=1.5, style="dashed"];
+    
+    HADDR -> ADDR [label="地址", color="#ff8c00", penwidth=2];
+    HSIZE -> ADDR [color="#ff8c00", penwidth=1.5, style="dashed"];
+    
+    HWRITE -> WRITE [color="#ff1493", penwidth=1.5];
+    HSIZE -> WRITE [color="#ff1493", penwidth=1.5, style="dashed"];
+    HWDATA -> WRITE [label="写数据", color="#ff1493", penwidth=2];
+    
+    HSIZE -> READ [color="#20b2aa", penwidth=1.5, style="dashed"];
+    BRAM_DOUT -> READ [label="BRAM数据", color="#dc143c", penwidth=2];
+    
+    // Internal connections
+    PROTO -> ADDR [label="控制", color="#ff8c00", penwidth=1.5];
+    PROTO -> WRITE [label="控制", color="#ff8c00", penwidth=1.5, style="dashed"];
+    PROTO -> READ [label="控制", color="#ff8c00", penwidth=1.5, style="dashed"];
+    PROTO -> RESP [label="状态", color="#ff8c00", penwidth=1.5];
+    
+    ADDR -> WRITE [label="偏移", color="#ff8c00", penwidth=1.5, style="dashed"];
+    ADDR -> READ [label="偏移", color="#ff8c00", penwidth=1.5, style="dashed"];
+    
+    // Output connections - AHB
+    READ -> HRDATA [label="对齐数据", color="#228b22", penwidth=2];
+    RESP -> HRESP [color="#228b22", penwidth=1.5];
+    RESP -> HREADYOUT [color="#228b22", penwidth=1.5];
+    
+    // Output connections - BRAM
+    ADDR -> BRAM_ADDR [label="转换后", color="#9370db", penwidth=2];
+    WRITE -> BRAM_DIN [label="对齐后", color="#9370db", penwidth=2];
+    PROTO -> BRAM_EN [color="#9370db", penwidth=1.5];
+    WRITE -> BRAM_WE [label="字节使能", color="#9370db", penwidth=2];
+}
