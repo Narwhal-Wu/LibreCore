@@ -120,6 +120,9 @@ module TOP(
 
     // 从CPU导出的调试值：x31寄存器的32位数据
     wire [31:0] cpu_reg31_value;
+    // 从CPU导出的程序计数器(PC)
+    // 注意：如果你的 myCPU 模块端口名不是 PC，请在实例化时改为正确的端口名，或在 myCPU 中新增输出端口
+    wire [31:0] cpu_pc;
 
     myCPU cpu_inst (
         .HCLK(clk_cpu),                // 时钟信号
@@ -150,7 +153,8 @@ module TOP(
         .HTRANS_D(HTRANS_D),
         .HMASTLOCK_D(HMASTLOCK_D),
         .HPROT_D(HPROT_D),
-        .REGS_X31(cpu_reg31_value)
+        .REGS_X31(cpu_reg31_value),
+        .PC(cpu_pc)
     );
 
     // PLL实例�?
@@ -248,8 +252,9 @@ module TOP(
         end
     end
 
-    // LED输出
-    assign LED = led_reg;
+    // LED输出：将 CPU 的 PC 低 16 位映射到板载 16 个 LED 上
+    // 如果你想恢复按键控制的 led_reg 行为，请改回上面的赋值
+    assign LED = cpu_pc[15:0];
     assign {LED17_R, LED17_G, LED17_B} = rgb_reg[5:3];
     assign {LED16_R, LED16_G, LED16_B} = rgb_reg[2:0];
 
