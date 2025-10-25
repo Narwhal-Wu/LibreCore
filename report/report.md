@@ -505,6 +505,22 @@ IROM控制器将AHB协议转换为Block ROM接口协议，用于指令存储。
 3. LLM工具能够快速定位硬件设计中的常见问题，是有效的调试助手
 4. 寄存器读写应当采用明确的时钟边沿控制，避免读写冲突
 
+### 4.2 测试代码生成
+
+### 4.3 注释优化
+
+### 4.4 部分deepseek使用记录
+
+1.https://chat.deepseek.com/share/hcogst7sf2yye6y47f
+
+2.j型指令解析 https://chat.deepseek.com/share/kfyg0hoa9gjq1smz5h
+
+3.指令sltiu解析 https://chat.deepseek.com/share/axxdszrztr90l81r7y
+
+4.流水线暂停 https://chat.deepseek.com/share/gcnb39bbjrch34fyfp
+
+4.添加AHB端口 https://chat.deepseek.com/share/ce2z1uhq0m693m2xwn
+
 ---
 
 ## 5. 仿真验证与测试
