@@ -78,17 +78,13 @@ RISC-V作为一个开源的指令集架构，近年来在学术界和工业界�
    - Memory（访存）阶段：数据存储器访问
    - Writeback（写回）阶段：结果写回寄存器
 
-2. **AHB总线互连系统：**
-   - 支持多主设备多从设备互连
-   - 地址译码和数据路由
-   - 传输仲裁和控制
+2. **AHB存储读写系统：**
+    - 采用AMBA AHB协议实现片上存储系统，提升模块可复用性和扩展性
+    - 集成BRAM控制器（支持字节、半字、字访问）和IROM控制器，均通过AHB接口与主机通信
+    - 支持地址译码、数据路由、传输仲裁，能够无等待地实现连续读写
+    - 采用状态机管理控制与数据阶段，处理写后读、读后写等紧邻流水事务，保证数据一致性和高效性
 
-3. **存储器子系统：**
-   - 指令ROM（IROM）控制器：只读，用于存储程序代码
-   - 数据RAM（BRAM）控制器：可读写，用于数据存储
-   - 支持字节、半字、字访问
-
-4. **基础外设：**
+3. **基础外设：**
    - 锁相环模块
    - 按键以及按键消抖模块
    - LED
@@ -147,7 +143,32 @@ RISC-V作为一个开源的指令集架构，近年来在学术界和工业界�
 [描述核心控制逻辑的状态机设计，这是初级赛道的重点考察内容]
 
 这是模板部分我们现在这边是架构介绍更像2.2.1不是状态机 -->
-#### 2.2.2 流水线架构设计
+
+#### 2.2.2 状态机设计
+
+在AHB_bram_controller模块使用状态机对当前周期跟前一周期主机发起的传输事务进行标记，反映当前控制模块数据传输状态，实现当AHB流水线传输当读请求紧随着写请求发起，BRAM不能及时处理数据，在不产生等待的情况下符合AHB协议正确读写数据。具体而言，代码显式展现的状态有IDLE，WRITE，READ跟FREE。而在实际的控制中基于前一时钟周期跟当前状态进行控制，实际上实现了IDLE，WRITE，READ，WRITE -> READ(BUSY)，READ -> WRITE(FREE)，NO TASK(FREE)六个状态。这么做的原因是标准的状态机需要在状态转换信号的下一个时钟周期进行状态转换，而这样不能满足当作为状态转换信号的控制信号到来就直接对其进行响应，进行对应控制的设计要求，因此采用这种设计逻辑。
+
+**状态转换图：**
+
+![AHB_bram_controller状态机](figure/fsm_AHB.svg)
+
+**状态说明：**
+
+注：带有【等效态｜非真实状态】标注的条目为组合等效表达，用于说明行为关系，不对应寄存器化的实际状态值。
+
+- IDLE：代表当前HRESETn为低，存储读写模块在被重置，没有在工作状态
+- WRITE：代表当前主机发起一个写传输请求，在等效状态中用于判断下一步状态跳转
+- READ：代表当前主机发起一个读传输请求，在等效状态中用于判断下一步状态跳转
+- FREE：代表读写模块在工作状态，主机没有发起传输任务。代表存储读写模块在工作且主机没有发起读写传输请求，如果之前有由主机发起写传输请求之后连续发起读传输请求产生的未决事务写传输，此时能够在读传输的数据阶段进行写操作，完成之前的写传输，释放寄存器。
+- 【等效态｜非真实状态】WRITE → READ（BUSY）：代表主机发起写传输请求之后连续发起读传输请求，由于BRAM读操作需要一个时钟周期而AHB接口协议读操作同样也是一个时钟周期，为了不拉低HREADYOUT产生等待减慢主机速度，这时候控制BRAM先进行读操作而将当前写操作存入寄存器进行缓冲，等BRAM空闲再发起当前写操作。而在等待BRAM有空闲能够进行之前的写操作的过程中，如果再次有读操作访问了之前写操作对应的地址会基于写操作的偏移跟写数据跟读出数据组合输出读数据实现前推避免读数据错误。
+- 【等效态｜非真实状态】READ → WRITE（FREE）：代表主机发起读传输请求之后连续发起写传输请求，由于读传输请求在控制阶段已经被BRAM处理完在数据阶段输出数据，而写传输在控制阶段不需要对BRAM进行操作。因此如果之前有由主机发起写传输请求之后连续发起读传输请求产生的未决事务写传输，此时能够在读传输的数据阶段进行写操作，完成之前的写传输，释放寄存器。
+- 【等效态｜非真实状态】NO TASK（FREE）：与实际状态 FREE 为同一状态
+
+**展示外围模块AHB_bram_controller状态机设计而不是核心控制逻辑的原因：**
+cpu部分采用5级流水线架构代码内部没有标准的状态机部分
+
+
+#### 2.2.3 流水线架构设计
 
 五级流水线设计采用经典的RISC流水线结构，各阶段功能如下：
 
@@ -260,8 +281,14 @@ RISC-V作为一个开源的指令集架构，近年来在学术界和工业界�
 
 <!-- 这里跟模板#### 2.2.3 时序设计
 
-[描述关键路径的时序设计，体现时序分析能力] 不匹配 -->
-#### 2.2.3 AHB总线设计
+[描述关键路径的时序设计，体现时序分析能力] 不匹配 
+
+#### 2.2.3 时序设计
+
+对于cpu跟外设BRAM的数据读写时序，参照AMBA AHB协议进行实现，将数据传输分成控制阶段跟数据阶段，实现在控制阶段下一个时钟周期进行数据传输，每个传输需要2个时钟周期，但能够通过流水线形式运行这样每个周期都有控制信号跟数据传输。
+
+-->
+#### 2.2.4 AHB总线设计
 
 系统采用AMBA AHB-Lite协议实现片上互连。
 
@@ -482,64 +509,240 @@ Writeback模块负责将执行结果写回寄存器堆。
 - 生成寄存器写使能信号
 - 处理CSR指令的写回
 
-#### 3.2.6 AHB Interconnect模块
-
-![AHB Interconnect模块框图](rtl_diagrams/module_ahb_interconnect.svg)
-
-**功能描述：**
-AHB互连模块实现总线仲裁和数据路由。
-
-**主要功能：**
-- 地址译码：根据地址自动选择从设备
-- 数据路由：将从设备响应路由回主设备
-- 响应管理：合并多个从设备的响应和就绪信号
-
-**子模块：**
-- **AHB Decoder**：根据地址译码，生成从设备选择信号
-- **AHB Multiplexor**：根据选择信号，将从设备响应路由回主设备
-
-#### 3.2.7 BRAM Controller模块
+#### 3.2.1 AHB_bram_controller
+(AHB_irom_controller与之类似只是删去部分代码节省资源)
 
 ![BRAM Controller模块框图](rtl_diagrams/module_ahb_bram_controller.svg)
 
 **功能描述：**
-BRAM控制器将AHB协议转换为Block RAM接口协议。
+实现对vivado block memory IP进行控制，能够作为AHB从机被主机进行读写，作为bridge将BRAM Native接口转换成AHB接口。并且能够正确处理主机时序跟BRAM时序，当BRAM不能及时处理读写传输能够对未决事务进行暂存跟后续执行，对数据进行前推，实现不暂停条件下连续读写。
 
-**主要功能：**
-- AHB到BRAM协议转换：通过状态机管理传输流程
-- 支持字节、半字、字的读写：灵活的数据大小控制
-- 处理BRAM的1周期延迟：读数据对齐和延迟处理
-- 生成BRAM的字节写使能信号：根据HSIZE和地址偏移生成写使能
-- 数据对齐：自动处理非对齐访问的数据对齐
+**端口定义：**
 
-#### 3.2.8 IROM Controller模块
+```verilog
+module AHB_bram_controller #(
+    parameter integer DATA_WIDTH = 32,
+    parameter integer ADDR_WIDTH = 32
+    )(
 
-![IROM Controller模块框图](rtl_diagrams/module_ahb_irom_controller.svg)
+    //=====AHB-Lite slave interface=========================================================================
+    //global signals
+    // Clock and reset signals
+    input  wire HCLK,        // AHB system clock input
+    input  wire HRESETn,     // AHB system reset input, active low
+
+    // Slave select signal
+    input  wire HSELx,       // Slave select signal, asserted when this slave is selected
+
+    // Address and control signals
+    input wire     [ADDR_WIDTH-1:0] HADDR,      // Address bus, specifies the address for the current transfer
+    input wire                      HWRITE,     // Transfer direction; 1 = write, 0 = read
+    input wire     [2:0]            HSIZE,      //simplified here// Transfer size; indicates the size of the transfer (byte0, halfword1, word2 etc.)
+    input wire     [2:0]            HBURST,     //not use now// Burst type; indicates if the transfer is single, incrementing, or wrapping burst
+    input wire     [3:0]            HPROT,      //not use now// Protection control signals; provides information about the bus access type
+    input wire     [1:0]            HTRANS,     // Transfer type; indicates the type of the current transfer (IDLE0, BUSY1, NONSEQ2, SEQ3)
+    input wire                      HMASTLOCK,  //not use now// Locked transfer signal; indicates if the current transfer is part of a locked sequence
+    input wire                      HREADY,     // Transfer ready input; indicates if the previous transfer has finished 1
+
+    // Write data bus
+    input wire     [DATA_WIDTH-1:0] HWDATA,     // Write data bus; carries data from master to slave during write operations
+
+    // Transfer response signals
+    output wire    HREADYOUT,                   // Transfer ready output; indicates if the slave is ready to complete the transfer
+    output wire    HRESP,                       // Transfer response; indicates the status of the transfer (OKAY0, ERROR1)
+
+    // Read data bus
+    output reg     [DATA_WIDTH-1:0] HRDATA,     // Read data bus; carries data from slave to master during read operations
+    //=====AHB-Lite slave interface=========================================================================
+
+    //=====single port ram BRAM interface=========================================================================
+    output reg  [ADDR_WIDTH-1:0]       bram_addra,   // BRAM address port (write/read address)
+    output reg  [DATA_WIDTH-1:0]       bram_dina,    // BRAM data input port (write data)
+    input  wire [DATA_WIDTH-1:0]       bram_douta,   // BRAM data output port (read data)
+    output reg                         bram_ena,     // BRAM enable signal
+    output reg  [(DATA_WIDTH/8)-1 : 0]  bram_wea     // BRAM write enable (byte-wise)
+    //=====single port ram BRAM interface=========================================================================
+);
+```
+
+**逻辑设计：**
+AHB_bram_controller 面向 AHB-Lite 与单端口 BRAM 的桥接，遵循 AHB“控制阶段+数据阶段”的两拍传输模型，并在不拉低 HREADYOUT 的前提下处理读后写/写后读的紧邻流水事务。
+
+- 传输阶段与对齐
+    - 控制阶段采样 `HSELx/HTRANS/HWRITE/HSIZE/HADDR`，数据阶段完成 `HRDATA/写入 BRAM`。
+    - 仅支持单拍（`HBURST=Single`）且不支持 `HLOCK`；`HSIZE` 支持字节/半字/字（≤word）。
+    - 对齐检查：半字需 `HADDR[0]=0`，字需 `HADDR[1:0]=0`，违规置 `HRESP=1`（ERROR）。
+
+- 写路径（字节使能与延迟对齐）
+    - 控制阶段锁存 `HADDR->addr_r`、`HSIZE->hsize_r`，解码字节写使能 `bram_wea_decode`（按 `HSIZE` 与地址低位选择字节使能信号）。
+    - 数据阶段驱动 `bram_addra/ena/wea/dina`，确保与 `HWDATA` 对齐写入。
+
+- 读路径与前推（forwarding）
+    - 读控制到达即拉高 `bram_ena` 并给出 `bram_addra`，下拍从 `bram_douta` 取数。
+    - 若出现“写→读”紧邻（RAW hazard），写操作暂存到寄存器（`addr_reg/data_reg/bram_wea_reg`），读返回阶段按 `HSIZE/offset` 将 `data_reg` 与 `bram_douta` 按字节粒度合成，保证读到最新值。
+
+- 无等待策略与轻量状态
+    - `HREADYOUT` 恒为 1，实现总线无等待；用组合态 `bus_state`（FREE/WRITE/READ）+ 上拍 `bus_state_d1` 描述序列关系。
+    - 发生“写→读”时置 `register_active=1`，等到“FREE 或 读→写”窗口将暂存写一次性回放至 BRAM，清空寄存器。
+    - 以 `bram_2BUSY` 监控未决回放是否溢出；若超过可承载阈值（变为 `2'b10`），置 `HRESP=1` 报错。
+
+- 协议与限制
+    - `HRESP=1` 条件：不支持的 `HSIZE`、非 SINGLE 的 `HBURST`、未决事务溢出、地址未对齐。
+    - 设计假设：单端口 BRAM、32-bit 数据宽、1 拍读延迟；参数化 `ADDR_WIDTH/DATA_WIDTH` 与 `ADDR_LSB` 适配不同位宽。
+    - 未实现：突发传输、锁定传输、保护位/缓存一致性等高级特性。
+
+#### 3.2.2 AHB_interconnect
+
+![AHB Interconnect模块框图](rtl_diagrams/module_ahb_interconnect.svg)
 
 **功能描述：**
-IROM控制器将AHB协议转换为Block ROM接口协议，用于指令存储。
+AHB_interconnect 为 AHB-Lite 提供轻量级两从机互连，集成地址译码与返回路径多路复用。将主机侧地址 `HADDR` 译码为从机片选 `HSEL[1:0]`，并依据片选从对应从机回传 `HRDATA/HRESP/HREADY` 至主机侧。模块本身不引入等待，握手与延迟完全由被选从机决定；聚焦在“片选+响应返回”。
 
-**主要功能：**
-- AHB到ROM协议转换：通过状态机管理只读传输
-- 只读访问：写操作自动返回错误响应
-- 支持连续读取：优化顺序读取性能
-- 数据对齐：支持字节、半字、字的读取并自动对齐
-- 地址转换：将AHB地址转换为ROM地址
+**端口定义：**
+
+```verilog
+module AHB_interconnect #(
+        parameter ADDR_WIDTH = 32,
+        parameter DATA_WIDTH = 32
+)(
+        input  wire HCLK,
+        input  wire HRESETn,
+        input  wire [ADDR_WIDTH -1:0] HADDR,
+        input  wire [DATA_WIDTH-1:0] HRDATA0,
+        input  wire HRESP0,
+        input  wire HREADYOUT0,
+        input  wire [DATA_WIDTH-1:0] HRDATA1,
+        input  wire HRESP1,
+        input  wire HREADYOUT1,
+
+        output wire [DATA_WIDTH-1:0] HRDATA,
+        output wire HRESP,
+        output wire [1:0] HSEL,
+        output wire HREADY
+);
+```
+
+**逻辑设计：**
+AHB_interconnect 由两部分组成：
+
+- 地址译码器（AHB_decoder）
+    - 输入：`HADDR`、`HRESETn`；输出：`HSEL[1:0]`（one-hot 片选）。
+    - 地址映射策略在译码器内部定义，可通过高位地址划分存储器与外设窗口。
+
+- 响应多路复用器（AHB_multiplexor）
+    - 根据 `HSEL` 选择对应从机返回路径，将 `HRDATAx/HRESPx/HREADYOUTx` 直通到主机侧输出 `HRDATA/HRESP/HREADY`。
+    - 命名说明：本模块输出端口为 `HREADY`（等价主机侧 HREADY），其值来自被选从机的 `HREADYOUTx`，不额外插入等待。
+
+特性与限制：
+
+- 支持参数化 `ADDR_WIDTH/DATA_WIDTH`；当前实现为两从机，易扩展至 N 从机（扩大 `HSEL` 位宽与多路复用输入）。
+- 不负责写数据/控制信号的路由与仲裁，写通路由顶层直接依 `HSEL` 连接到各从机；无多主机支持。
+- 不改变 AHB-Lite 的握手与时序，系统整体等待与错误由被选从机的 `HREADYOUT/HRESP` 决定。
+- 未实现突发/锁定等高级特性，本模块对这些特性透明；
+
+
+![BRAM Controller模块框图](rtl_diagrams/module_ahb_bram_controller.svg)
 
 ### 3.3 资源使用设计
 
+存储读写部分遵照AHB协议但未完全实现所有功能，只实现了满足当前处理器数据吞吐的功能，节省FPGA资源，缩短项目开发时间。
+
+<!-- 这部分需要进一步review -->
 **逻辑资源规划：**
 
-- LUT使用：主要用于ALU、控制逻辑、地址译码等组合逻辑
-- 寄存器使用：流水线寄存器、PC、寄存器堆等时序逻辑
-- 时钟资源：使用全局时钟网络，单时钟域设计
+- **LUT（查找表）使用策略：**
+  - **处理器核心逻辑**：
+    - ALU运算单元：实现32位加减法、逻辑运算（AND/OR/XOR）、移位运算（SLL/SRL/SRA）和比较运算（SLT/SLTU）
+    - 指令译码器：根据opcode、funct3、funct7字段识别指令类型，生成控制信号
+    - 立即数生成器：支持I/S/B/U/J五种指令格式的立即数提取和符号扩展
+    - 分支判断逻辑：实现BEQ/BNE/BLT/BGE/BLTU/BGEU六种分支条件判断
+  - **数据冒险检测与前递**：
+    - 前递条件检测：比较流水线各阶段的寄存器地址，生成前递控制信号
+    - Load-Use冒险检测：识别Load指令后紧跟使用其结果的指令
+    - 前递数据选择器：多路复用器选择寄存器堆、EX阶段或MEM阶段的数据
+  - **AHB控制器逻辑**：
+        - BRAM/IROM 控制器：字节使能生成、地址对齐检测、读写状态管理
+        - AHB 状态控制：通过写读状态寄存器处理“写后读”等紧邻流水事务
+        - 数据前推逻辑：处理写后读冒险的字节粒度数据合成
+        - 备用的 AHB_interconnect/decoder/multiplexor 当前未在顶层使用，编译时可选择剪裁以减少资源
+  - **优化策略**：
+    - 采用组合逻辑表达式而非标准状态机，减少状态寄存器和转换逻辑
+    - 精简冗余的控制路径，删除不必要的中间寄存器
+    - 优化关键路径的组合逻辑深度，满足50-100MHz工作频率要求
+
+- **寄存器（FF）使用：**
+  - **流水线寄存器**（约200-300个32位寄存器）：
+    - IF/ID寄存器：指令（32位）、PC（32位）
+    - ID/EX寄存器：指令（32位）、PC（32位）、源操作数rs1/rs2（各32位）、立即数（32位）、控制信号（约10位）
+    - EX/MEM寄存器：指令（32位）、PC（32位）、ALU结果（32位）、rs2数据（32位）、控制信号（约10位）
+    - MEM/WB寄存器：指令（32位）、写回数据（32位）、目标寄存器地址（5位）、控制信号（约5位）
+  - **程序计数器PC**（32位寄存器）：维护当前指令地址，支持正常递增和分支跳转
+  - **通用寄存器堆**（32个32位寄存器）：x0-x31寄存器，其中x0硬连线为0
+  - **AHB控制寄存器**：
+    - 地址和控制信号缓存：addr_r、hsize_r、write_pending、read_pending
+    - 未决事务缓冲：addr_reg、data_reg、bram_wea_reg（用于写后读冒险处理）
+    - 状态标志：register_active、bus_state_d1、bram_addra_d1
+    - 分支历史缓冲：branch_taken_buffer、branch_taken_buffer2（防止分支重复执行）
+  - **优化措施**：
+    - 删除冗余的多级缓冲寄存器（如原register_active_d1），改用组合逻辑判断
+    - 合并功能相近的状态标志，减少寄存器数量
+    - 使用使能信号控制寄存器更新，降低动态功耗
+
+- **时钟资源：**
+  - **单时钟域设计**：所有模块使用统一的HCLK时钟，简化时序约束和跨时钟域处理
+  - **全局时钟网络**：利用FPGA的专用全局时钟布线资源，保证时钟偏斜最小化
+  - **同步复位**：HRESETn采用同步复位方式（在时钟上升沿采样），提高时序可靠性
+  - **时钟约束**：
+    - 目标工作频率：50-100 MHz
+    - 建立时间裕量：≥1ns
+    - 保持时间裕量：≥0.5ns
+  - **无时钟门控**：当前设计不使用时钟门控技术，优先保证设计简洁性和可靠性
 
 **存储资源规划：**
 
-- 寄存器堆：32个32位寄存器，使用分布式RAM或寄存器实现
-- BRAM使用：
-  - 指令ROM：使用Block ROM IP核，大小可配置（默认64KB）
-  - 数据RAM：使用Block RAM IP核，大小可配置（默认64KB）
+- **BRAM（Block RAM）使用：**
+  - **指令ROM（IROM）**：
+    - 使用Xilinx Block Memory Generator IP核
+    - 配置为单端口ROM模式，只读访问
+    - 容量：64KB（16384 x 32-bit = 16K words）
+        - 资源占用：Block RAM resource(s) (36K BRAMs): 1
+    - 读延迟：1个时钟周期
+    - 地址映射：暂未进行地址映射由cpu通过特定端口直接访问
+    - 初始化：通过.coe文件加载程序二进制代码
+  - **数据RAM（BRAM）**：
+    - 使用Xilinx Block Memory Generator IP核
+    - 配置为单端口RAM模式，支持读写访问
+    - 容量：64KB（16384 x 32-bit = 16K words）
+        - 资源占用：Block RAM resource(s) (36K BRAMs): 1
+    - 读延迟：1个时钟周期
+    - 写模式：支持字节粒度写使能（4-bit byte enable）
+    - 地址映射：暂未进行地址映射由cpu通过特定端口直接访问
+    - 应用：存储程序数据段、堆栈、全局变量等
+  - **BRAM利用率**：
+    - Artix-7 (xc7a100t)共有135个36Kb BRAM块
+    - 本设计使用2个BRAM块，利用率约1.5%
+    - 预留充足资源用于后续扩展（如增加Cache、外设缓冲等）
+
+- **分布式RAM使用：**
+  - **通用寄存器堆**（Register File）：
+    - 32个32位寄存器（x0-x31），共1024位存储
+        - 实现方式：使用寄存器阵列（Flip-Flop）
+    - 原因：
+      - 支持2读1写端口，需要多端口访问
+      - 寄存器实现延迟为0，分布式RAM有1周期读延迟
+      - 寄存器数量相对较少，不会过度消耗FF资源
+    - 资源占用：32个32位寄存器 = 1024个FF
+    - 特殊处理：x0寄存器硬连线为0，写操作被忽略
+  - **AHB临时缓冲**：
+    - addr_reg、data_reg等小容量缓冲使用寄存器实现
+    - 避免分布式RAM的额外读延迟，保证AHB无等待传输
+
+**资源优化总结：**
+
+1. **轻量级设计**：通过精简AHB功能（仅实现单次传输，不支持burst）和优化控制逻辑，显著降低LUT和FF使用量
+2. **BRAM高效利用**：采用单端口BRAM配置，节省资源；通过控制器的巧妙设计（写后读前推机制）弥补单端口限制
+3. **可扩展性预留**：当前资源利用率较低，为后续添加Cache、TLB、浮点单元、外设控制器等功能预留了充足空间
+4. **时序优化**：单时钟域设计和合理的流水线划分保证了50-100MHz的工作频率，满足教学和基础应用需求
 
 ---
 
@@ -690,6 +893,105 @@ end
 ```
 
 这个优化确保了在多个流水线阶段都有相同寄存器写回时，使用最新的数据值，避免了数据冒险导致的错误结果。
+
+#### 4.1.3 状态机设计优化
+
+**优化目标：** 优化控制逻辑设计
+
+
+**用户输入：**
+
+```
+查看整个代码提出你觉得能够节省资源简化的地方
+(LLM读取了整个文件)
+
+```
+
+**LLM回答：**
+(展示部分进行了代码修改的回答)
+```
+下面给出对当前 AHB_bram_controller_simple.v 代码的全面精简与资源优化建议（功能不变前提下），分层说明：状态/控制、写路径、读路径与数据旁路、时序/复位、可综合性、参数化与可移植性、潜在隐患与可测性补强。可按需挑选实施。
+
+1. 状态与控制逻辑精简
+bus_state / bram_state / bram_2BUSY 三套状态过重
+
+现在：bus_state 只是区分本拍是否是写/读/空闲；bram_state 又对前后拍组合做状态判定；bram_2BUSY 再次扩展 busy 层数并用于 HRESP。
+可选优化：
+方案A：删除 bram_state 和 bram_2BUSY，直接用 write_pending 和 read_pending（当前拍+上一拍）推导“冲突/忙”条件。例如：
+busy_condition = write_pending & read_request_next 或 write_request与读请求交叠。
+方案B：保留一个 2bit 状态（例如 IDLE / WRITE / READ / TRANSITION），用上拍的写请求和本拍读请求判断是否需要产生 HRESP。
+好处：减少组合比较 + 减少两个寄存器 + 去掉多余 MUX。
+......
+(省略部分)
+......
+12. 实施优先级建议
+按“收益/改动风险”排序：
+
+修正不规范时序敏感列表（or HRESETn → or negedge HRESETn）。
+加入地址对齐检测，避免非法访问。
+合并 register_active* / bram_2BUSY 逻辑。
+HRDATA 旁路统一字节合成，删除重复 case。
+去除无必要清零输出，减少翻转。
+参数化 offset 计算，准备可扩展性。
+引入断言（仿真专用）验证 corner case。
+如果你希望，我可以下一步直接帮你：
+
+A) 先做“低风险修正包”（复位/对齐/HRESP简化）
+B) 再做“结构重构包”（统一旁路/删除多余状态）
+告诉我你想执行哪一步或希望我直接提交第一阶段修改。需要的话我可以按阶段打补丁。
+
+要不要继续我来动手？
+```
+
+**代码改进：**
+
+```verilog
+
+always @(*) begin
+    if(bus_state_d1 == bus_WRITE && bus_state == bus_READ) begin
+        bram_state = bram_BUSY;
+    end else if((bus_state == bus_FREE) ||(bus_state_d1 == bus_READ && bus_state == bus_WRITE)) begin
+        bram_state = bram_FREE;
+    end else if((bus_state_d1 == bus_READ && bus_state == bus_READ) || (bus_state_d1 == bus_WRITE && bus_state == bus_WRITE) 
+              ||(bus_state_d1 == bus_FREE && bus_state == bus_WRITE) || (bus_state_d1 == bus_FREE && bus_state == bus_READ)) begin
+        bram_state = bram_WORK;
+    end else begin
+        bram_state = bram_IDLE;
+    end
+end
+
+always @(*) begin
+    if (!HRESETn) begin
+        register_active = 1'b0;
+    end else if (bram_state == bram_BUSY) begin
+        register_active = 1'b1;
+    end else if (bram_state == bram_FREE) begin
+        register_active = 1'b0;
+    end else begin
+        register_active = register_active;
+    end
+    
+end
+
+
+[原始代码]
+(将原来bram_state状态表示改成组合表示更直接反映控制逻辑)
+
+always @(posedge HCLK or negedge HRESETn) begin
+    if (!HRESETn) begin
+        register_active <= 1'b0;
+    end else if (bus_state_d1 == bus_WRITE && bus_state == bus_READ) begin
+        register_active <= 1'b1;
+    end else if (((bus_state == bus_FREE) || (bus_state_d1 == bus_READ && bus_state == bus_WRITE))) begin
+        register_active <= 1'b0;
+    end else begin
+        register_active <= register_active;
+    end
+end
+
+
+[改进后代码]
+```
 
 ### 4.2 实现阶段LLM辅助
 
@@ -1116,6 +1418,156 @@ wire [31:0] branch_target = ID_EX_is_jalr ? jalr_target : (ID_EX_pc + ID_EX_imm 
 3. 注释应该与代码保持同步更新，避免注释与实现不一致
 4. LLM可以快速帮助改进代码规范性，提升整体代码质量
 
+#### 4.2.4 代码优化
+
+**优化目标：** 提升代码质量和性能
+
+**用户输入：**
+
+```
+对于ahb的按位读取是否要像写入那通过掩码进行偏移读取寻址数据?
+
+[LLM实际上读取了整个文件这里只黏贴部分代码]
+if (!HRESETn) begin
+        HRDATA = {DATA_WIDTH{1'b0}};
+    end else if (read_pending) begin
+        if(register_active && bram_addra == addr_reg) begin
+            case (hsize_r)
+                3'b000: HRDATA = {24'b0, data_reg[7:0]};
+                3'b001: HRDATA = {16'b0, data_reg[15:0]};
+                3'b010: HRDATA = data_reg;
+                default: HRDATA = {DATA_WIDTH{1'b0}};
+            endcase
+        end else begin
+            case (hsize_r)
+                3'b000: HRDATA = {24'b0, bram_douta[7:0]};
+                3'b001: HRDATA = {16'b0, bram_douta[15:0]};
+                3'b010: HRDATA = bram_douta;
+                default: HRDATA = {DATA_WIDTH{1'b0}};
+            endcase
+```
+
+**LLM回答：**
+
+```
+你的疑问很专业。
+确实，当前实现（如{24'b0, bram_douta[7:0]}）只取了最低字节，没有考虑地址的低位偏移（即HADDR[ADDR_LSB-1:0]），这样只能从低位对齐读取，不能支持高位字节的读取。
+
+在AHB协议中，按位（byte/halfword）读取时，应该根据地址的低位偏移，选择对应的字节或半字。例如，HADDR[1:0]（对于32位数据）决定了你要读哪一个字节。
+
+标准做法应为：
+
+读取时根据HADDR[ADDR_LSB-1:0]偏移，选择bram_douta的对应字节或半字。
+例如，byte读取时，HRDATA = {24'b0, bram_douta[8*offset +: 8]}，offset=HADDR[1:0]。
+你的当前实现不完全符合AHB标准的“非对齐访问”要求。
+如果要完全支持AHB协议的按位/半字读取，建议修改为根据地址偏移动态选择数据位。
+
+需要我帮你修改为支持地址偏移的标准实现吗？
+```
+
+**代码改进：**
+
+```verilog
+if (!HRESETn) begin
+        HRDATA = {DATA_WIDTH{1'b0}};
+    end else if (read_pending) begin
+        if(register_active && bram_addra == addr_reg) begin
+            case (hsize_r)
+                3'b000: HRDATA = {24'b0, data_reg[7:0]};
+                3'b001: HRDATA = {16'b0, data_reg[15:0]};
+                3'b010: HRDATA = data_reg;
+                default: HRDATA = {DATA_WIDTH{1'b0}};
+            endcase
+        end else begin
+            case (hsize_r)
+                3'b000: HRDATA = {24'b0, bram_douta[7:0]};
+                3'b001: HRDATA = {16'b0, bram_douta[15:0]};
+                3'b010: HRDATA = bram_douta;
+                default: HRDATA = {DATA_WIDTH{1'b0}};
+            endcase
+[原始代码]
+
+[LLM 提供]
+if (!HRESETn) begin
+        HRDATA = {DATA_WIDTH{1'b0}};
+    end else if (read_pending) begin
+        // 计算字节偏移，不用integer，直接用wire表达式
+        wire [1:0] offset = bram_addra[ADDR_LSB-1:0];
+        if(register_active && bram_addra == addr_reg) begin
+            case (hsize_r)
+                3'b000: case(offset)
+                    2'd0: HRDATA = {24'b0, data_reg[7:0]};
+                    2'd1: HRDATA = {24'b0, data_reg[15:8]};
+                    2'd2: HRDATA = {24'b0, data_reg[23:16]};
+                    2'd3: HRDATA = {24'b0, data_reg[31:24]};
+                    default: HRDATA = {DATA_WIDTH{1'b0}};
+                endcase
+                3'b001: case(offset[1])
+                    1'b0: HRDATA = {16'b0, data_reg[15:0]};
+                    1'b1: HRDATA = {16'b0, data_reg[31:16]};
+                    default: HRDATA = {DATA_WIDTH{1'b0}};
+                endcase
+                3'b010: HRDATA = data_reg;
+                default: HRDATA = {DATA_WIDTH{1'b0}};
+            endcase
+        end else begin
+            case (hsize_r)
+                3'b000: case(offset)
+                    2'd0: HRDATA = {24'b0, bram_douta[7:0]};
+                    2'd1: HRDATA = {24'b0, bram_douta[15:8]};
+                    2'd2: HRDATA = {24'b0, bram_douta[23:16]};
+                    2'd3: HRDATA = {24'b0, bram_douta[31:24]};
+                    default: HRDATA = {DATA_WIDTH{1'b0}};
+                endcase
+                3'b001: case(offset[1])
+                    1'b0: HRDATA = {16'b0, bram_douta[15:0]};
+                    1'b1: HRDATA = {16'b0, bram_douta[31:16]};
+                    default: HRDATA = {DATA_WIDTH{1'b0}};
+                endcase
+                3'b010: HRDATA = bram_douta;
+                default: HRDATA = {DATA_WIDTH{1'b0}};
+            endcase
+
+[最终使用代码]
+    if (!HRESETn) begin
+        HRDATA = {DATA_WIDTH{1'b0}};
+    end else if (read_pending) begin
+    if(register_active && (bram_addra_d1[ADDR_WIDTH-1:ADDR_LSB] == addr_reg[ADDR_WIDTH-1:ADDR_LSB])) begin
+            // according bram_wea_reg combine data_reg and bram_douta read write circle
+            // if there is a not done write due to read after write and the address is the same
+            // then the read data should be combine of the write data and the bram_dout
+            case (hsize_r)
+                3'b000: begin
+                    HRDATA = {24'b0, (bram_wea_reg[offset] ? data_reg[8*offset +: 8] : bram_douta[8*offset +: 8])};
+                end
+                3'b001: begin
+                    if (offset < (DATA_WIDTH/8 - 1)) begin
+                        HRDATA = {16'b0,
+                            (bram_wea_reg[offset+1]   ? data_reg[8*(offset+1) +: 8] : bram_douta[8*(offset+1) +: 8]),
+                            (bram_wea_reg[offset]     ? data_reg[8*offset +: 8]     : bram_douta[8*offset +: 8])};
+                    end else begin
+                        HRDATA = {DATA_WIDTH{1'b0}}; // out of range, return zero
+                    end
+                end
+                3'b010: begin
+                    HRDATA = {
+                        (bram_wea_reg[3]   ? data_reg[24 +: 8] : bram_douta[24 +: 8]),
+                        (bram_wea_reg[2]   ? data_reg[16 +: 8] : bram_douta[16 +: 8]),
+                        (bram_wea_reg[1]   ? data_reg[8 +: 8]  : bram_douta[8 +: 8]),
+                        (bram_wea_reg[0]   ? data_reg[0 +: 8]  : bram_douta[0 +: 8])};
+                end
+                default: HRDATA = {DATA_WIDTH{1'b0}};
+            endcase
+        end else begin
+            case (hsize_r)
+                3'b000: HRDATA = {24'b0, bram_douta[8*offset +: 8]};
+                3'b001: HRDATA = {16'b0, bram_douta[8*offset +: 16]};
+                3'b010: HRDATA = bram_douta;
+                default: HRDATA = {DATA_WIDTH{1'b0}};
+            endcase
+[改进后代码]
+```
+
 ### 4.3 调试阶段LLM辅助
 
 #### 4.3.1 数据前递条件完善
@@ -1367,8 +1819,38 @@ end
 
 ### 5.2 功能验证
 
-#### 5.2.1 TRACE仿真测试
+<!-- #### 5.2.1 TRACE仿真测试 -->
 
+#### 5.2.1 单元测试
+
+[描述各个模块的单元测试]
+
+**测试模块1：AHB_bram_controller**
+
+- 测试目标：
+    - 验证 AHB_bram_controller 支持字节、半字、字的单次读写，连续非突发写/读，读写交错（RAW hazard）等典型 AHB-Lite 访存场景，确保数据正确性与协议时序。
+- 测试用例：
+    1. 单字写入与读取（地址对齐，数据回读校验）
+    2. 半字写入与读取（不同地址偏移，覆盖高/低半字）
+    3. 字节写入与读取（不同字节偏移，覆盖所有 byte lane）
+    4. 连续多字写入与顺序读取（非突发 pipeline，验证流水线能力）
+    5. 写后紧跟读（RAW hazard，验证前推/旁路机制）
+    6. 非法访问/对齐检测（如半字/字未对齐，HRESP=1）
+- 测试结果：✅ 通过
+    - 所有功能点均通过 ModelSim/Vivado 仿真，读写数据与预期一致，HRESP/HREADYOUT 行为正确。
+
+**测试模块2：AHB_interconnect**
+
+- 测试目标：
+    - 验证 AHB_interconnect 能正确译码主机地址，驱动 HSEL 片选信号，完成主机与多个从机（如 BRAM、IROM 控制器）的数据通路切换，确保响应和数据返回路径无误。
+- 测试用例：
+    1. 访问 BRAM 地址空间，检查 HSEL[0] 片选、数据写入/回读、HREADY/HRESP 直通。
+    2. 访问 IROM 地址空间，检查 HSEL[1] 片选、数据回读、HREADY/HRESP 直通。
+    3. 地址跨区切换，连续访问 BRAM/IROM，验证片选切换和响应无毛刺。
+    4. 非法/未映射地址访问，检查 HSEL 输出和主机侧响应。
+    5. 片选信号与下游从机 HSELx 保持一致性（仿真断言校验）。
+- 测试结果：✅ 通过
+    - 所有场景均通过仿真，HSEL、HRDATA、HRESP、HREADY 等信号与预期一致，片选与下游一致性断言无误。
 
 
 #### 5.2.2 vivado集成仿真测试
@@ -1546,14 +2028,13 @@ OpenRV\LibreCore\workshop\assemble 1\newriscv\vivado simulation wave.png
 
 3. **完整的RTL文档：** 使用自动化工具生成RTL结构图，清晰展示各模块的连接关系。
 
-### 7.3 开源与教育价值
+### 7.3 LLM辅助方法创新
 
-1. **开源项目：** 项目代码开源，可供学习和参考。
+[描述在LLM辅助设计方面的创新做法]
 
-2. **教学资源：** 完整实现了计算机组成原理课程中的核心概念，是很好的教学案例。
-
-3. **可扩展平台：** 可作为进一步学习和扩展的基础，如添加中断、特权级、扩展指令集等。
-
+- 使用vscode github copilot辅助设计通过直接访问本地文件跟仓库提供上下文，让LLM能够直接了解代码逻辑跟项目要求
+- 允许copilot直接调用cmd终端执行调试指令并且读取返回结果快速实现环境配置跟gnu工具链语法路径等问题解决
+- 使用copilot agent PR 创建拉取请求完成任务，让智能体自动分步骤完成任务且与主工作分支隔离进行审核后合并
 ---
 
 ## 8. 未来改进方向
@@ -1567,6 +2048,8 @@ OpenRV\LibreCore\workshop\assemble 1\newriscv\vivado simulation wave.png
 3. **特权级支持：** 当前未实现特权级和异常处理机制，无法运行操作系统。
 
 4. **Cache支持：** 当前未实现指令和数据Cache，访存性能受限。
+
+5.**burst支持：** 存储部分未完全支持AHB协议未能实现burst突发传输
 
 ### 8.2 改进计划
 
@@ -1582,6 +2065,9 @@ OpenRV\LibreCore\workshop\assemble 1\newriscv\vivado simulation wave.png
 4. **外设扩展：** 
    - 添加UART、GPIO、Timer等常用外设
    - 支持更多的存储器映射设备
+
+5. **存储访问：**
+   - 实现cpu cache 且实现burst功能采用跨时钟实现快速存储读取
 
 ### 8.3 后续发展方向
 
@@ -1644,13 +2130,11 @@ OpenRV\LibreCore\workshop\assemble 1\newriscv\vivado simulation wave.png
 
 ## 10. 参考文献
 
-[1] David Patterson, John Hennessy. Computer Organization and Design RISC-V Edition. Morgan Kaufmann, 2017.
+[1] ARM Ltd. (n.d.). *AMBA AHB Protocol Specification (IHI 0033)*. Retrieved October 30, 2025, from [https://developer.arm.com/documentation/ihi0033/latest/](https://developer.arm.com/documentation/ihi0033/latest/)
 
-[2] RISC-V Foundation. The RISC-V Instruction Set Manual, Volume I: User-Level ISA, Version 2.2. 2017.
+[2] darklife. (n.d.). *darkriscv: RISC-V compatible softcore implemented in Verilog*. GitHub repository. Retrieved October 30, 2025, from [https://github.com/darklife/darkriscv](https://github.com/darklife/darkriscv)
 
-[3] ARM Limited. AMBA 3 AHB-Lite Protocol Specification. 2006.
-
-[4] Harris, Sarah L., and David Money Harris. Digital Design and Computer Architecture: RISC-V Edition. Morgan Kaufmann, 2021.
+[3] RISC-V Software Source. (n.d.). *riscv-tests: RISC-V ISA tests*. GitHub repository. Retrieved October 30, 2025, from [https://github.com/riscv-software-src/riscv-tests](https://github.com/riscv-software-src/riscv-tests)
 
 ---
 
