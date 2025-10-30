@@ -916,6 +916,206 @@ wire [31:0] alu_in1 = forward_rs1_l_1 ? forward_rs1_l_1_datai :
 
 该优化实现了Load指令结果的直接前递，避免了Load-Use冒险时的流水线气泡插入，显著提升了处理器的CPI（Cycles Per Instruction）性能。
 
+#### 4.2.3 代码注释规范化优化
+
+**优化目标：** 提升代码可读性和国际化标准
+
+**用户输入：**
+
+```
+我的RISC-V处理器代码已经完成基本功能，但代码中的注释主要是中文，
+不太符合国际化的编码规范。我希望将注释改为英文，同时让注释更加
+清晰和规范。
+
+以下是我的execute模块中的一段代码：
+```verilog
+//ALU操作
+wire [31:0] alu_in1 = ...;
+wire [31:0] alu_in2 = ...;
+
+//b型分支条件判断
+wire beq_taken  = ...;
+wire bne_taken  = ...;
+
+//综合分支跳转条件
+assign branch_cond_taken = ...;
+
+//JALR跳转地址处理
+wire [31:0] jalr_target = ...;
+
+//跳转目标地址选择
+wire [31:0] branch_target = ...;
+```
+
+请帮我改进这些注释，使其更加专业和规范。
+```
+
+**LLM回答：**
+
+```
+改进代码注释是提升代码质量的重要步骤。以下是改进建议：
+
+1. **使用英文注释**：符合国际化标准，便于团队协作和开源分享
+2. **增加描述性细节**：不仅说明"做什么"，还要说明"为什么"和"如何做"
+3. **保持一致的格式**：统一注释风格，使代码更易读
+
+改进建议：
+```verilog
+// ALU input selection with forwarding
+wire [31:0] alu_in1 = forward_rs1_l_1 ? forward_rs1_l_1_datai : 
+                      forward_rs1_l_2 ? forward_rs1_l_2_datai : 
+                      ID_EX_rs1;
+
+// ALU operations
+always @(*) begin
+    // Arithmetic and logic operations based on funct3 field
+    case (ID_EX_inst[14:12])
+        3'b000: alu_result = is_sub ? (alu_in1 - alu_in2) : (alu_in1 + alu_in2);
+        // ... more operations
+    endcase
+    
+    // Special cases for specific instructions
+    if (ID_EX_inst[6:0] == `LUI)    alu_result = alu_in2;
+    if (ID_EX_inst[6:0] == `AUIPC)  alu_result = ID_EX_pc + alu_in2;
+end
+
+// Branch condition evaluation
+wire beq_taken  = (ID_EX_rs1 == ID_EX_rs2);  // Equal
+wire bne_taken  = (ID_EX_rs1 != ID_EX_rs2);  // Not equal
+wire blt_taken  = ($signed(ID_EX_rs1) < $signed(ID_EX_rs2));   // Less than (signed)
+wire bge_taken  = ($signed(ID_EX_rs1) >= $signed(ID_EX_rs2));  // Greater or equal (signed)
+
+// Combined branch condition
+assign branch_cond_taken = 
+       ((ID_EX_inst != 0) &&
+       ((ID_EX_inst[14:12] == 3'b000 && beq_taken)  ||
+        (ID_EX_inst[14:12] == 3'b001 && bne_taken)  ||
+        // ... more conditions
+       ));
+
+// JALR target address calculation
+wire [31:0] jalr_target = (alu_in1 + ID_EX_imm);
+
+// Branch target selection
+wire [31:0] branch_target = ID_EX_is_jalr ? jalr_target : (ID_EX_pc + ID_EX_imm);
+```
+
+注释改进要点：
+1. 使用完整的英文描述，避免过于简短的缩写
+2. 为复杂的逻辑添加额外说明（如signed/unsigned）
+3. 保持注释与代码的对齐，提高可读性
+4. 使用一致的注释风格（如统一使用 // 而不是混用 /* */）
+```
+
+**代码改进：**
+
+对比初赛版本和当前版本的execute.v模块代码注释：
+
+**改进前（初赛版本）：**
+```verilog
+//========================================
+// 3. Execute阶段：运算与跳转
+//========================================
+
+//ALU操作
+wire [31:0] alu_in1 = ...;
+wire [31:0] alu_in2 = ...;
+reg [31:0] alu_result;
+
+always @(*) begin
+    if (ID_EX_inst != 0) begin
+        case (ID_EX_inst[14:12])
+            3'b000: alu_result = is_sub ? (alu_in1 - alu_in2) : (alu_in1 + alu_in2);
+            3'b001: alu_result = alu_in1 << alu_in2[4:0];
+            // ...
+        endcase
+    end
+    if (ID_EX_inst[6:0] == `LUI) alu_result = alu_in2;
+end
+
+//b型分支条件判断
+wire beq_taken  = (ID_EX_rs1 == ID_EX_rs2);
+wire bne_taken  = (ID_EX_rs1 != ID_EX_rs2);
+
+//综合分支跳转条件
+assign branch_cond_taken = ...;
+
+//JALR跳转地址处理
+wire [31:0] jalr_target = (alu_in1 + ID_EX_imm);
+
+//跳转目标地址选择
+wire [31:0] branch_target = ID_EX_is_jalr ? jalr_target : (ID_EX_pc + ID_EX_imm);
+```
+
+**改进后（当前版本）：**
+```verilog
+`timescale 1ns / 1ps
+
+// RISC-V instruction opcodes
+`define LUI     7'b0110111
+`define AUIPC   7'b0010111
+// ...
+
+// ALU input selection with forwarding
+wire [31:0] alu_in1 = forward_rs1_l_1 ? forward_rs1_l_1_datai : 
+                      forward_rs1_l_2 ? forward_rs1_l_2_datai : 
+                      ID_EX_rs1;
+wire [31:0] alu_in2 = (ID_EX_inst[6:0] == `MCC || ...) ? ID_EX_imm : ID_EX_rs2;
+
+// ALU operations
+always @(*) begin
+    if (ID_EX_inst != 0) begin
+        case (ID_EX_inst[14:12])
+            3'b000: alu_result = is_sub ? (alu_in1 - alu_in2) : (alu_in1 + alu_in2);
+            3'b001: alu_result = alu_in1 << alu_in2[4:0];
+            // ...
+        endcase
+    end
+    // Special cases for specific instructions
+    if (ID_EX_inst[6:0] == `LUI)                                alu_result = alu_in2;
+    if (ID_EX_inst[6:0] == `AUIPC)                              alu_result = ID_EX_pc + alu_in2;
+end
+
+// Branch condition evaluation
+wire beq_taken  = ...;  // Equal
+wire bne_taken  = ...;  // Not equal
+wire blt_taken  = ...;  // Less than (signed)
+wire bge_taken  = ...;  // Greater or equal (signed)
+
+// Combined branch condition
+assign branch_cond_taken = 
+       ((ID_EX_inst != 0) &&
+       ((ID_EX_inst[14:12] == 3'b000 && beq_taken)  ||
+        // ...
+       ));
+
+// JALR target address calculation
+wire [31:0] jalr_target = (alu_in1 + ID_EX_imm);
+
+// Branch target selection
+wire [31:0] branch_target = ID_EX_is_jalr ? jalr_target : (ID_EX_pc + ID_EX_imm - 4);
+```
+
+**改进效果：**
+
+通过LLM的辅助，代码注释得到了全面优化：
+
+1. **国际化标准**：所有中文注释改为规范的英文注释，符合国际开源项目标准
+2. **描述性增强**：注释不仅说明功能，还说明细节（如signed/unsigned区分）
+3. **格式统一**：采用一致的注释风格和对齐方式，提高可读性
+4. **专业术语**：使用标准的硬件设计术语（如"ALU operations"、"Branch condition evaluation"）
+
+**相关截图：**
+
+![注释优化对比](LLM辅助优化记录/注释优化中文转英文.png)
+
+**经验总结：**
+
+1. 英文注释有助于代码的国际化和团队协作
+2. 清晰的注释可以显著提高代码的可维护性
+3. 注释应该与代码保持同步更新，避免注释与实现不一致
+4. LLM可以快速帮助改进代码规范性，提升整体代码质量
+
 ### 4.3 调试阶段LLM辅助
 
 #### 4.3.1 数据前递条件完善
