@@ -2807,5 +2807,5 @@ LibreCore/
 
 **报告结束**
 
-**项目仓库：** https://github.com/Narwhal-Wu/LibreCore  
-**最后更新：** 2025-11-3
+**项目仓库：** https://github.com/Narwhal-Wu/fpgachina2025_48687（开源）
+**最后更新：** 2025-11-6
